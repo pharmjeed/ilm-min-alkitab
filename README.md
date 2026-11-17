@@ -1,56 +1,26 @@
-# Welcome to your Expo app 👋
+# علم من الكتاب — app
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo SDK 58 app (iOS / Android / web) for the content of «منصة أسماء الله الحسنى» and «السنن والأسباب».
+Read `CLAUDE.md` and `ARCHITECTURE.md` first.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Commands
 
 ```bash
-npm run reset-project
+npm install
+npm run web            # dev server in the browser (expo start --web)
+npm start              # dev server for Expo Go (scan the QR code)
+npm run typecheck      # tsc --noEmit
+npm run lint           # expo lint
+npm test               # vitest (pure TS in src/lib/**)
+npm run packs:bundle   # regenerate src/lib/packs/bundled.ts from assets/packs/<section>/*.pack
+npm run export:web     # static web build into dist/
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Content packs are produced by the platform (`../New folder`):
+`npm run app:packs -- names --app ../ilm-min-alkitab` and `npm run app:packs -- sunan --app ../ilm-min-alkitab`,
+then `npm run packs:bundle` here.
 
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Node: Expo SDK 58 supports Node 22.13+, 24.3+ or 26+. The commands above were verified on Node 25.9
+as well (engine warnings only). If the Expo CLI ever refuses to run on an odd Node release, run it with a
+portable Node 24 without touching the system install, e.g.
+`npx -y -p node@24 node node_modules/expo/bin/cli start --web`.

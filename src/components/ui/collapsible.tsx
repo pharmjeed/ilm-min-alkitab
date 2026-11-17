@@ -1,65 +1,63 @@
-import { SymbolView } from 'expo-symbols';
-import { PropsWithChildren, useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+/**
+ * Collapsible — two modes:
+ *  - toggle (default): the children are hidden until opened («إظهار الآية السابقة ▾ / إخفاء … ▴»);
+ *  - clip (`collapsedHeight`): the children are cut at that height and the toggle «إظهار المزيد ▾ /
+ *    إظهار أقل ▴» appears only when they are taller (e.g. a hadith folded after ~6 lines:
+ *    collapsedHeight = 6 * lineHeight).
+ */
+import { useState, type ReactNode } from "react";
+import { Pressable, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { SPACE, TOUCH_MIN } from "@/theme";
 
-export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const theme = useTheme();
+import { AppText } from "./app-text";
 
-  return (
-    <ThemedView>
-      <Pressable
-        style={({ pressed }) => [styles.heading, pressed && styles.pressedHeading]}
-        onPress={() => setIsOpen((value) => !value)}>
-        <ThemedView type="backgroundElement" style={styles.button}>
-          <SymbolView
-            name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
-            size={14}
-            weight="bold"
-            tintColor={theme.text}
-            style={{ transform: [{ rotate: isOpen ? '-90deg' : '90deg' }] }}
-          />
-        </ThemedView>
-
-        <ThemedText type="small">{title}</ThemedText>
-      </Pressable>
-      {isOpen && (
-        <Animated.View entering={FadeIn.duration(200)}>
-          <ThemedView type="backgroundElement" style={styles.content}>
-            {children}
-          </ThemedView>
-        </Animated.View>
-      )}
-    </ThemedView>
-  );
+export interface CollapsibleProps {
+  children: ReactNode;
+  collapsedHeight?: number;
+  initiallyOpen?: boolean;
+  /** Label while closed (default «إظهار المزيد»); «▾» is appended. */
+  moreLabel?: string;
+  /** Label while open (default «إظهار أقل»); «▴» is appended. */
+  lessLabel?: string;
 }
 
-const styles = StyleSheet.create({
-  heading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  pressedHeading: {
-    opacity: 0.7,
-  },
-  button: {
-    width: Spacing.four,
-    height: Spacing.four,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    marginTop: Spacing.three,
-    borderRadius: Spacing.three,
-    marginLeft: Spacing.four,
-    padding: Spacing.four,
-  },
-});
+export function Collapsible({ children, collapsedHeight, initiallyOpen = false, moreLabel = "إظهار المزيد", lessLabel = "إظهار أقل" }: CollapsibleProps) {
+  const [open, setOpen] = useState(initiallyOpen);
+  const [fullHeight, setFullHeight] = useState(0);
+  const clip = collapsedHeight != null;
+  const needsToggle = !clip || fullHeight > collapsedHeight + 4;
+
+  const toggle = needsToggle ? (
+    <Pressable
+      onPress={() => setOpen((o) => !o)}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+      hitSlop={8}
+      style={{ alignSelf: "flex-start", minHeight: TOUCH_MIN, justifyContent: "center" }}
+    >
+      <AppText variant="small" color="gold">
+        {open ? `${lessLabel} ▴` : `${moreLabel} ▾`}
+      </AppText>
+    </Pressable>
+  ) : null;
+
+  if (!clip) {
+    return (
+      <View style={{ gap: SPACE.xs }}>
+        {toggle}
+        {open ? children : null}
+      </View>
+    );
+  }
+  return (
+    <View style={{ gap: SPACE.xs }}>
+      <View style={{ maxHeight: open ? undefined : collapsedHeight, overflow: "hidden" }}>
+        <View style={{ flexShrink: 0 }} onLayout={(e) => setFullHeight(e.nativeEvent.layout.height)}>
+          {children}
+        </View>
+      </View>
+      {toggle}
+    </View>
+  );
+}

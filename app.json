@@ -1,18 +1,21 @@
 {
   "expo": {
-    "name": "ilm-min-alkitab",
+    "name": "علم من الكتاب",
     "slug": "ilm-min-alkitab",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "ilmminalkitab",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#0D1F1F",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/icon.png",
+      "bundleIdentifier": "com.pharmjeed.ilmminalkitab"
     },
     "android": {
+      "package": "com.pharmjeed.ilmminalkitab",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0D1F1F",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -20,7 +23,11 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "server",
+      "output": "single",
+      "lang": "ar",
+      "name": "علم من الكتاب",
+      "themeColor": "#0D1F1F",
+      "backgroundColor": "#0D1F1F",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -28,9 +35,34 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#0D1F1F",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 200,
+          "dark": {
+            "backgroundColor": "#0D1F1F",
+            "image": "./assets/images/splash-icon.png"
+          }
+        }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportsRTL": true,
+          "forcesRTL": true,
+          "supportedLocales": {
+            "ios": [
+              "ar"
+            ],
+            "android": [
+              "ar"
+            ]
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#D4A449"
         }
       ]
     ],
