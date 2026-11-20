@@ -1,0 +1,6 @@
+01-onboarding|-onboarded NO
+02-home|-onboarded YES -route home
+03-names|-onboarded YES -route names
+04-sunan|-onboarded YES -route sunan
+05-saved|-onboarded YES -route saved
+06-more|-onboarded YES -route more

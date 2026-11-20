@@ -41,3 +41,10 @@ example
 # generated native folders
 /ios
 /android
+
+# iOS
+build/
+shots/
+*.xcodeproj/
+build.log
+DerivedData/
