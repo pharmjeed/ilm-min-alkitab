@@ -1,23 +1,6 @@
 import SwiftUI
 
-// Temporary screens — replaced section by section (names mirror the website; sunan mirror the website's «/sunan»).
-
-struct NamesHomeView: View {
-    @Environment(\.colorScheme) private var scheme
-    var body: some View {
-        let t = Theme(scheme)
-        List(Content.names()?.doors ?? []) { d in
-            VStack(alignment: .leading, spacing: 4) {
-                Text(d.label).font(AppFont.serif(18)).foregroundStyle(t.cream)
-                if let s = d.description { Text(s).font(AppFont.sans(13)).foregroundStyle(t.muted) }
-            }
-            .listRowBackground(t.surface)
-        }
-        .scrollContentBackground(.hidden)
-        .background(t.bg)
-        .navigationTitle("كنز الأسماء الحسنى")
-    }
-}
+// Temporary screens — replaced section by section (names: Features/Names; sunan will mirror the website's «/sunan»).
 
 struct SunanHomeView: View {
     @Environment(\.colorScheme) private var scheme

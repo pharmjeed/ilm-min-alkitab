@@ -45,12 +45,17 @@ struct HomeView: View {
             switch d {
             case .names: NamesHomeView()
             case .sunan: SunanHomeView()
+            case .n(let route): NamesRouteView(route: route)
             }
         }
     }
 }
 
-enum HomeDestination: Hashable { case names, sunan }
+/// Everything the «الرئيسية» stack can show. `.n` = a page of the names section (mirror of the website).
+enum HomeDestination: Hashable {
+    case names, sunan
+    case n(NamesRoute)
+}
 
 private struct TreasureCard: View {
     let title: String
