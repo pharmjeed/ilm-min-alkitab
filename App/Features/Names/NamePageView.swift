@@ -106,11 +106,18 @@ private struct NamePageContent: View {
             }
             .task {
                 if let f = focus {
-                    try? await Task.sleep(nanoseconds: 350_000_000)
+                    // the outer stack is lazy: reach the tabs first so the cards exist, then the card itself
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    proxy.scrollTo("chips", anchor: .top)
+                    try? await Task.sleep(nanoseconds: 300_000_000)
                     proxy.scrollTo(tab == .sunnah ? "w\(f)" : "p\(f)", anchor: .top)
                 } else if Route.scrollToTabs {
                     try? await Task.sleep(nanoseconds: 350_000_000)
                     proxy.scrollTo("chips", anchor: .top)
+                    if Route.arg == "name1" {
+                        try? await Task.sleep(nanoseconds: 300_000_000)
+                        proxy.scrollTo("bigTop", anchor: .top)
+                    }
                 }
             }
         }
@@ -166,7 +173,7 @@ private struct NamePageContent: View {
             bigVerses(t)
         } else {
             VStack(alignment: .leading, spacing: 24) {
-                LazyVStack(spacing: 16) {
+                VStack(spacing: 16) {
                     ForEach(detail.verses) { v in verseCard(v).id("p\(v.i)") }
                 }
                 SurahIndexView(items: groups.map { (no: $0.no, name: $0.name, count: $0.count) }) { no in
@@ -207,6 +214,7 @@ private struct NamePageContent: View {
                     .font(AppFont.sans(14)).foregroundStyle(t.cream).lineSpacing(6)
             }
             .siteCard(t, radius: 12, border: t.gold.opacity(0.4), fill: t.gold.opacity(0.1))
+            .id("bigTop")
 
             Menu {
                 ForEach(groups) { g in
@@ -222,7 +230,7 @@ private struct NamePageContent: View {
                 .siteCard(t, radius: 12, padding: 12)
             }
 
-            LazyVStack(spacing: 16) {
+            VStack(spacing: 16) {
                 ForEach(shown) { v in verseCard(v).id("p\(v.i)") }
             }
 
@@ -443,7 +451,7 @@ private struct SunnahPanel: View {
             }
             VStack(alignment: .leading, spacing: 12) {
                 Text("الشواهد — \(Arabic.count(detail.hadiths.count, Arabic.witnesses))").font(AppFont.serif(22)).foregroundStyle(t.cream)
-                LazyVStack(spacing: 16) {
+                VStack(spacing: 16) {
                     ForEach(detail.hadiths) { h in
                         WitnessCardView(hadith: h, nameId: detail.id, nameLabel: detail.name).id("w\(h.i)")
                     }
