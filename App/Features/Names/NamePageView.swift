@@ -119,6 +119,7 @@ private struct NamePageContent: View {
     // MARK: tabs (components/names/NameTabs.tsx)
 
     private func tabBar(_ t: Theme, proxy: ScrollViewProxy) -> some View {
+        ScrollViewReader { tabsProxy in
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
                 ForEach(tabs) { item in
@@ -133,9 +134,13 @@ private struct NamePageContent: View {
                         .background(on ? t.gold : Color.clear, in: Capsule())
                     }
                     .buttonStyle(.plain)
+                    .id(item.key)
                 }
             }
             .padding(.horizontal, 16).padding(.vertical, 8)
+        }
+        .onAppear { tabsProxy.scrollTo(tab, anchor: .center) }
+        .onChange(of: tab) { _, k in withAnimation { tabsProxy.scrollTo(k, anchor: .center) } }
         }
         .background(t.bg)
         .overlay(alignment: .bottom) { Rectangle().fill(t.line).frame(height: 1) }

@@ -89,7 +89,9 @@ enum Route {
         case "door": return [.names, .n(.feel), .n(.door(1))]
         case "situation": return feelSituation
         case "nameinsit": return [.names, .n(.feel), .n(.door(1)), .n(.situation(1)), .n(.nameInSituation(name: 99, situation: 1))]
-        case "name20", "savesheet": return [.names, .n(.name(20))]
+        case "name20": return [.names, .n(.name(20))]
+        case "name20v", "savesheet": return [.names, .n(.name(20, focus: 1))]
+        case "name20w": return [.names, .n(.name(20, tab: .sunnah, focus: 1))]
         case "name20pray": return [.names, .n(.name(20, tab: .pray))]
         case "name20sunnah": return [.names, .n(.name(20, tab: .sunnah))]
         case "name1": return [.names, .n(.name(1))]
@@ -101,8 +103,8 @@ enum Route {
     }
     /// `nod`: the names home scrolled to «اسم اليوم».
     static var scrollToNameOfDay: Bool { arg == "nod" }
-    /// `name20pray` / `name20sunnah`: the name page scrolled to its tabs.
-    static var scrollToTabs: Bool { arg == "name20pray" || arg == "name20sunnah" }
+    /// `name20pray` / `name20sunnah` / `name1`: the name page scrolled to its tabs.
+    static var scrollToTabs: Bool { ["name20pray", "name20sunnah", "name1"].contains(arg) }
 
     /// `savesheet`: the first «مفضلة» on the page opens the sign-in sheet once.
     private static var autoSaveSheetPending = arg == "savesheet"
