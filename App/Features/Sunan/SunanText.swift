@@ -60,6 +60,13 @@ enum SunanText {
         return [srcLabel, grade].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
     }
 
+    /// Keeps a short reference on one line (the site's `whitespace-nowrap`): spaces → no-break spaces, word joiners around «–».
+    static func nowrap(_ s: String) -> String {
+        let nbsp = String(Character(Unicode.Scalar(UInt8(0xA0))))
+        let wj = Unicode.Scalar(UInt32(0x2060)).map { String(Character($0)) } ?? ""
+        return s.replacingOccurrences(of: " ", with: nbsp).replacingOccurrences(of: "–", with: wj + "–" + wj)
+    }
+
     static func dorarURL(_ code: String) -> URL? { URL(string: "https://dorar.net/h/\(code)") }
 
     static func itemURL(_ fp: String) -> URL { Site.url("/sunan/item/\(fp)") }

@@ -229,7 +229,7 @@ struct QuranItemTextView: View {
             all += space
         }
         let range = quran.from == quran.to ? "\(quran.from)" : "\(quran.from)–\(quran.to)"
-        var ref = AttributedString(" [\(surah.isEmpty ? "" : "\(surah): ")\(range)]")
+        var ref = AttributedString(" " + SunanText.nowrap("[\(surah.isEmpty ? "" : "\(surah): ")\(range)]"))
         ref.font = AppFont.sans(14)
         ref.foregroundColor = t.gold
         all += ref

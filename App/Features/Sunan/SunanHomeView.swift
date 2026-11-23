@@ -46,40 +46,47 @@ struct SunanHomeView: View {
 
     var body: some View {
         let t = Theme(scheme)
-        ScrollView {
-            if let ix = repo.index {
-                VStack(alignment: .leading, spacing: 0) {
-                    header(t, ix.stats)
+        ScrollViewReader { proxy in
+            ScrollView {
+                if let ix = repo.index {
+                    VStack(alignment: .leading, spacing: 0) {
+                        header(t, ix.stats)
 
-                    if !ways.isEmpty {
-                        VStack(spacing: 12) {
-                            ForEach(ways) { w in
-                                SunanLink(w.route) { WayCard(title: w.title, lead: w.lead, count: w.count) }
+                        if !ways.isEmpty {
+                            VStack(spacing: 12) {
+                                ForEach(ways) { w in
+                                    SunanLink(w.route) { WayCard(title: w.title, lead: w.lead, count: w.count) }
+                                }
+                            }
+                            .padding(.top, 32)
+                        }
+
+                        SunanHeading(text: "ماذا تحتاج الآن؟", size: 24).padding(.top, 32).id("domains")
+                        LazyVStack(spacing: 12) {
+                            ForEach(ix.domains) { d in
+                                SunanLink(.domain(d.id)) { DomainCard(domain: d) }
                             }
                         }
-                        .padding(.top, 32)
-                    }
+                        .padding(.top, 16)
 
-                    SunanHeading(text: "ماذا تحتاج الآن؟", size: 24).padding(.top, 32)
-                    LazyVStack(spacing: 12) {
-                        ForEach(ix.domains) { d in
-                            SunanLink(.domain(d.id)) { DomainCard(domain: d) }
+                        SunanHeading(text: "وفي الأصول", size: 24).padding(.top, 40)
+                        VStack(spacing: 12) {
+                            ForEach(Self.more) { m in
+                                SunanLink(m.route) { MoreCard(title: m.title, lead: m.lead) }
+                            }
                         }
+                        .padding(.top, 16)
                     }
-                    .padding(.top, 16)
-
-                    SunanHeading(text: "وفي الأصول", size: 24).padding(.top, 40)
-                    VStack(spacing: 12) {
-                        ForEach(Self.more) { m in
-                            SunanLink(m.route) { MoreCard(title: m.title, lead: m.lead) }
-                        }
-                    }
-                    .padding(.top, 16)
+                    .padding(16).padding(.bottom, 24)
                 }
-                .padding(16).padding(.bottom, 24)
+            }
+            .scrollDismissesKeyboard(.immediately)
+            .task {
+                guard let anchor = Route.consumeSunanScroll(["domains"]) else { return }
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                proxy.scrollTo(anchor, anchor: .top)
             }
         }
-        .scrollDismissesKeyboard(.immediately)
         .sunanScreen(SunanText.kicker, t)
     }
 

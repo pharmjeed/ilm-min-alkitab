@@ -90,7 +90,7 @@ enum Route {
         let feelSituation: [HomeDestination] = [.names, .n(.feel), .n(.door(1)), .n(.situation(firstSituation))]
         switch arg {
         case "names", "nod": return [.names]
-        case "sunan": return [.sunan]
+        case "sunan", "sunandomains": return [.sunan]
         case "feel": return [.names, .n(.feel)]
         case "door": return [.names, .n(.feel), .n(.door(1))]
         case "situation": return feelSituation
@@ -113,7 +113,7 @@ enum Route {
         case "sitemq", "sitemqtext":
             return [.sunan, .s(.domain(1)), .s(.need(1)), .s(.state(3)), .s(.item(fp: "b864df3937b5"))]
         case "sitemfp": return [.sunan, .s(.item(fp: "1c481e4cc3c2"))]
-        case "sday": return [.sunan, .s(.day)]
+        case "sday", "sdaystars": return [.sunan, .s(.day)]
         case "sdaytime": return [.sunan, .s(.day), .s(.dayTime(1))]
         case "sdeeds": return [.sunan, .s(.deeds)]
         case "sdeed": return [.sunan, .s(.deeds), .s(.deed(1))]
@@ -125,17 +125,22 @@ enum Route {
         }
     }
 
-    /// `sitemtext` / `sitemqtext`: the item page scrolled to its full text, folds open; `sitemmore`: to «بمعناها».
+    /// `sitemtext` / `sitemqtext`: the item page scrolled to the end of its full text, folds open; `sitemmore`: to «بمعناها»;
+    /// `sunandomains`: the section home at «ماذا تحتاج الآن؟»; `sdaystars`: the day programme at its first «ابدأ بهذه» block.
     private static var sunanScrollPending: String? = {
         switch arg {
-        case "sitemtext", "sitemqtext": return "text"
+        case "sitemtext", "sitemqtext": return "legend"
         case "sitemmore": return "more"
+        case "sunandomains": return "domains"
+        case "sdaystars": return "stars"
         default: return nil
         }
     }()
-    static func consumeSunanScroll() -> String? {
-        defer { sunanScrollPending = nil }
-        return sunanScrollPending
+    /// Consumed only by the page that has the anchor (pages lower in the stack may appear first).
+    static func consumeSunanScroll(_ anchors: Set<String>) -> String? {
+        guard let a = sunanScrollPending, anchors.contains(a) else { return nil }
+        sunanScrollPending = nil
+        return a
     }
     static var sunanOpenFolds: Bool { ["sitemtext", "sitemqtext"].contains(arg) }
     /// `nod`: the names home scrolled to «اسم اليوم».

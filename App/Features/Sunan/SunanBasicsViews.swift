@@ -94,7 +94,7 @@ private struct MacroCard: View {
             if !m.verses.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(m.verses, id: \.self) { v in
-                        AyahTextView(text: v.text, size: 21, reference: "[\(Surahs.name(v.s)): \(v.a)]")
+                        AyahTextView(text: v.text, size: 21, reference: SunanText.nowrap("[\(Surahs.name(v.s)): \(v.a)]"))
                     }
                 }
                 .padding(.top, 12)

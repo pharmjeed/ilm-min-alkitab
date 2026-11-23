@@ -76,9 +76,9 @@ private struct SunanItemContent: View {
                 .padding(16).padding(.bottom, 24)
             }
             .task {
-                guard let anchor = Route.consumeSunanScroll() else { return }
+                guard let anchor = Route.consumeSunanScroll(["legend", "more"]) else { return }
                 try? await Task.sleep(nanoseconds: 700_000_000)
-                proxy.scrollTo(anchor, anchor: .top)
+                proxy.scrollTo(anchor, anchor: anchor == "legend" ? .center : .top)
             }
         }
     }
@@ -140,7 +140,7 @@ private struct SunanItemContent: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 12)
                 }
-                RunsLegend().padding(.top, 12)
+                RunsLegend().padding(.top, 12).id("legend")
 
                 if let takhrij = item.takhrij, !takhrij.isEmpty {
                     SunanFold("التخريج", open: openFolds) { Text(takhrij) }

@@ -21,6 +21,7 @@ private struct SunanDayContent: View {
     var body: some View {
         let t = Theme(scheme)
         let total = day.periods.reduce(0) { a, p in a + p.times.reduce(0) { $0 + $1.items.count } }
+        let firstStarTime = day.periods.flatMap(\.times).first { $0.items.contains { $0.star == true } }?.id
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -81,6 +82,7 @@ private struct SunanDayContent: View {
                                     }
                                 }
                                 .padding(.top, 24)
+                                .id(tm.id == firstStarTime ? "stars" : "time-\(tm.id)")
                             }
                         }
                         .padding(.top, 40)
@@ -88,6 +90,11 @@ private struct SunanDayContent: View {
                     }
                 }
                 .padding(16).padding(.bottom, 24)
+            }
+            .task {
+                guard let anchor = Route.consumeSunanScroll(["stars"]) else { return }
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                proxy.scrollTo(anchor, anchor: .top)
             }
         }
     }
