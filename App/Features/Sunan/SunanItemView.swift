@@ -172,7 +172,7 @@ private struct SunanItemContent: View {
         if let merged = item.merged, merged > 1 { s += " · دُمجت فيها \(SunanText.count(merged, SunanText.narrations))" }
         var out = AttributedString(s)
         if let code = item.dorar, let u = SunanText.dorarURL(code) {
-            var a = AttributedString("الحديث في الدرر السنية ↗")
+            var a = AttributedString("الحديث في الدرر السنية \(SunanText.outArrow)")
             a.link = u
             a.foregroundColor = t.gold
             out += AttributedString(" — ") + a

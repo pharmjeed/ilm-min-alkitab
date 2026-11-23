@@ -67,6 +67,9 @@ enum SunanText {
         return s.replacingOccurrences(of: " ", with: nbsp).replacingOccurrences(of: "–", with: wj + "–" + wj)
     }
 
+    /// «↗» forced to its text glyph (iOS would draw it as an emoji).
+    static let outArrow = "↗" + (Unicode.Scalar(UInt32(0xFE0E)).map { String(Character($0)) } ?? "")
+
     static func dorarURL(_ code: String) -> URL? { URL(string: "https://dorar.net/h/\(code)") }
 
     static func itemURL(_ fp: String) -> URL { Site.url("/sunan/item/\(fp)") }
