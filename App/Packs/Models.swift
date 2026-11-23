@@ -7,6 +7,8 @@ import Foundation
 
 struct NamesIndex: Decodable {
     let version: String
+    /// ISO-8601 UTC — shown in «المزيد» as the content's date.
+    let generatedAt: String?
     let stats: NamesStats
     let nameOfDay: NameOfDaySetting
     /// All names in Excel order (= id order). «اسم اليوم» indexes THIS array.
@@ -17,7 +19,14 @@ struct NamesIndex: Decodable {
     let situations: [Situation]
     /// «ما بأنفسهم»: inner types in order, each with its situations (صريح before مشترك).
     let inner: [InnerType]
+    /// Markdown pages of the website (about / methodology), may be empty.
+    let pages: NamesPages?
     let chunks: [NamesChunkRef]
+}
+
+struct NamesPages: Decodable {
+    let about: String?
+    let methodology: String?
 }
 
 struct NamesStats: Decodable {

@@ -3,7 +3,14 @@ import Foundation
 /// Read-side of the names pack: the index with lookups (main thread, small) and the detail chunks
 /// (decoded off the main thread by `NameDetails`, cached per chunk).
 final class NamesRepo {
-    static let shared = NamesRepo()
+    /// Replaced (not mutated) when a downloaded version becomes active (`PackSync`).
+    static var shared: NamesRepo { lock.lock(); defer { lock.unlock() }; return current }
+    private static let lock = NSLock()
+    private static var current = NamesRepo()
+    static func reload() {
+        let fresh = NamesRepo()
+        lock.lock(); current = fresh; lock.unlock()
+    }
 
     let index: NamesIndex?
     private let cardsById: [Int: NameCard]
@@ -82,6 +89,9 @@ enum NamesPackError: Error { case unknownName(Int) }
 actor NameDetails {
     static let shared = NameDetails()
     private var chunks: [String: Task<[Int: NameDetail], Error>] = [:]
+
+    /// A new version became active: chunk files keep their names across versions, so forget what was decoded.
+    func reset() { chunks.removeAll() }
 
     func detail(_ id: Int) async throws -> NameDetail {
         guard let ref = NamesRepo.shared.index?.chunks.first(where: { $0.ids.contains(id) }) else {

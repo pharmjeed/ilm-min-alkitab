@@ -4,7 +4,14 @@ import Foundation
 /// mirroring the website's `lib/sunan/view.ts`. Item chunks, «برنامج اليوم والليلة» and «ماذا يجلب هذا العمل؟»
 /// are decoded off the main thread by `SunanStore`.
 final class SunanRepo {
-    static let shared = SunanRepo()
+    /// Replaced (not mutated) when a downloaded version becomes active (`PackSync`).
+    static var shared: SunanRepo { lock.lock(); defer { lock.unlock() }; return current }
+    private static let lock = NSLock()
+    private static var current = SunanRepo()
+    static func reload() {
+        let fresh = SunanRepo()
+        lock.lock(); current = fresh; lock.unlock()
+    }
 
     let index: SunanIndex?
     private let domainsById: [Int: SunanDomain]
@@ -133,6 +140,14 @@ actor SunanStore {
     private var fpMap: Task<[String: String], Error>?
     private var dayTask: Task<SunanDayFile, Error>?
     private var deedsTask: Task<SunanDeedsFile, Error>?
+
+    /// A new version became active: chunk files keep their names across versions, so forget what was decoded.
+    func reset() {
+        chunks.removeAll()
+        fpMap = nil
+        dayTask = nil
+        deedsTask = nil
+    }
 
     private static func decode<T: Decodable>(_ type: T.Type, _ file: String) throws -> T {
         guard let url = PackStore.shared.url(.sunan, file) else { throw PackError.missing(file) }

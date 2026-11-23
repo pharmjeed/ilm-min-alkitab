@@ -4,6 +4,12 @@
 04-sunan|-onboarded YES -route sunan
 05-saved|-onboarded YES -route saved
 06-more|-onboarded YES -route more
+06b-more-update|-onboarded YES -route moreupdate|12
+06c-more-bottom|-onboarded YES -route morebottom
+06d-more-about|-onboarded YES -route moreabout
+06e-more-light|-onboarded YES -route more -appearance light
+06f-home-light|-onboarded YES -route home -appearance light
+06g-name20-larger|-onboarded YES -route name20 -textScale 2
 07-names-nod|-onboarded YES -route nod
 08-feel|-onboarded YES -route feel
 09-door|-onboarded YES -route door
@@ -39,3 +45,5 @@
 40-sunan-pairs|-onboarded YES -route spairs
 41-sunan-method|-onboarded YES -route smethod
 42-sunan-search|-onboarded YES -route ssearch
+50-notif-scheduled|-onboarded YES -route notif -ciNotify YES|7
+51-notif-tap|-onboarded YES -route notiftap -ciNotify YES|7

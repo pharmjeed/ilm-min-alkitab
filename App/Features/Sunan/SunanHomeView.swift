@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// /sunan — app/sunan/page.tsx: header with the search → «برنامج اليوم والليلة» · «ماذا يجلب هذا العمل؟» →
-/// «ماذا تحتاج الآن؟» (the 12 domains) → «وفي الأصول».
+/// «ماذا تحتاج الآن؟» (every domain of the pack, in order) → «وفي الأصول».
 struct SunanHomeView: View {
     @Environment(\.colorScheme) private var scheme
     @EnvironmentObject private var nav: AppNav

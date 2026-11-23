@@ -327,7 +327,7 @@ struct WitnessCardView: View {
     private func docLine(_ t: Theme, _ text: String, url: String?) -> some View {
         var s = AttributedString(text)
         if let url, let u = URL(string: url) {
-            var a = AttributedString("الحديث في الدرر السنية ↗")
+            var a = AttributedString("الحديث في الدرر السنية \(SunanText.outArrow)")
             a.link = u
             a.foregroundColor = t.gold
             s += AttributedString(" — ") + a

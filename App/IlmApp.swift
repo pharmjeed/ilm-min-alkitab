@@ -1,37 +1,60 @@
 import SwiftUI
+import UIKit
+import UserNotifications
 
 @main
 struct IlmApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
+    init() {
+        // before any pack is read: apply a version that finished downloading last time, drop stale downloads
+        PackStore.prepareAtLaunch()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(\.layoutDirection, .rightToLeft)
                 .environment(\.locale, Locale(identifier: "ar@numbers=latn"))
-                .preferredColorScheme(AppSettings.colorScheme)
         }
     }
 }
 
-/// Small persisted settings. Launch arguments like `-onboarded YES` override UserDefaults (used by CI screenshots).
-enum AppSettings {
-    static var colorScheme: ColorScheme? {
-        switch UserDefaults.standard.string(forKey: "appearance") ?? "dark" {
-        case "light": return .light
-        case "system": return nil
-        default: return .dark
-        }
+/// The notification delegate must be set before launch finishes, so a tap that launched the app is delivered.
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        UNUserNotificationCenter.current().delegate = NotificationRouter.shared
+        return true
     }
 }
 
 /// First launch → enable notifications (the only onboarding step). Afterwards → the tab shell.
+/// Launch arguments like `-onboarded YES` / `-appearance light` override UserDefaults (CI screenshots).
 struct RootView: View {
     @AppStorage("onboarded") private var onboarded = false
+    @AppStorage("appearance") private var appearance = Appearance.dark.rawValue
+    @Environment(\.scenePhase) private var phase
 
     var body: some View {
-        if onboarded {
-            MainTabView()
-        } else {
-            NotificationsOnboardingView { onboarded = true }
+        Group {
+            if onboarded {
+                MainTabView()
+            } else {
+                NotificationsOnboardingView { onboarded = true }
+            }
+        }
+        .preferredColorScheme(Appearance.from(appearance).scheme)
+        .onAppear { Appearance.apply(Appearance.from(appearance)) }
+        .onChange(of: appearance) { _, v in Appearance.apply(Appearance.from(v)) }
+        .onChange(of: onboarded) { _, on in if on { ReminderScheduler.shared.reschedule() } }
+        .onChange(of: phase, initial: true) { _, p in
+            guard p == .active else { return }
+            if onboarded { ReminderScheduler.shared.reschedule() }
+            Task {
+                try? await Task.sleep(nanoseconds: 1_500_000_000) // after the first frame
+                await PackSync.shared.autoCheck()
+            }
         }
     }
 }
@@ -39,6 +62,8 @@ struct RootView: View {
 /// «الرئيسية · محفوظاتي · المزيد» — the two treasures are reached from «الرئيسية».
 struct MainTabView: View {
     @StateObject private var nav = AppNav()
+    @ObservedObject private var router = NotificationRouter.shared
+    @State private var probe: ReminderProbe?
 
     var body: some View {
         TabView(selection: $nav.tab) {
@@ -54,6 +79,20 @@ struct MainTabView: View {
         }
         .tint(Palette.gold(.dark))
         .environmentObject(nav)
+        .overlay(alignment: .bottom) {
+            if let probe { ReminderProbeView(probe: probe).padding(.bottom, 56) }
+        }
+        .onAppear { PackSync.shared.nav = nav }
+        .onReceive(router.$pending) { open in
+            guard let open else { return }
+            nav.openName(open.nameId)
+            DispatchQueue.main.async { router.pending = nil }
+        }
+        // a downloaded version waits while its pages are open
+        .onChange(of: nav.homePath) { _, _ in
+            Task { await PackSync.shared.activateReady(force: false) }
+        }
+        .task { probe = await ReminderProbe.runIfRequested() }
     }
 }
 
@@ -72,6 +111,17 @@ final class AppNav: ObservableObject {
             homePath.append(d)
         }
     }
+    /// A morning notification was tapped: «الرئيسية» → the name page.
+    func openName(_ id: Int) {
+        tab = 0
+        homePath = [.names, .n(.name(id))]
+    }
+    /// Whether a page of the section is in the «الرئيسية» stack.
+    func uses(_ s: PackSection) -> Bool { homePath.contains { $0.section == s } }
+    /// Goes back out of the section's pages (before its content is replaced).
+    func leave(_ s: PackSection) {
+        if let i = homePath.firstIndex(where: { $0.section == s }) { homePath.removeSubrange(i...) }
+    }
     /// Sibling pages (the previous / next time of «برنامج اليوم والليلة») replace the current page.
     func replaceLast(_ route: SunanRoute) {
         if !homePath.isEmpty { homePath.removeLast() }
@@ -82,8 +132,14 @@ final class AppNav: ObservableObject {
 /// Launch-argument routing for CI screenshots: `-route <name>` (see ci/routes.txt).
 enum Route {
     static var arg: String { UserDefaults.standard.string(forKey: "route") ?? "home" }
+    /// Launched by ci/screens.sh: no automatic content check (screens must not change under the camera).
+    static var isCI: Bool { UserDefaults.standard.object(forKey: "route") != nil }
     static var initialTab: Int {
-        switch arg { case "saved": return 1; case "more": return 2; default: return 0 }
+        switch arg {
+        case "saved": return 1
+        case "more", "moreupdate", "moreabout", "morebottom": return 2
+        default: return 0
+        }
     }
     static var initialHomePath: [HomeDestination] {
         let firstSituation = NamesRepo.shared.door(1)?.situationIds.first ?? 1
@@ -143,6 +199,17 @@ enum Route {
         return a
     }
     static var sunanOpenFolds: Bool { ["sitemtext", "sitemqtext"].contains(arg) }
+    /// `moreupdate`: «المزيد» at «المحتوى», then «تحقّق من التحديث» pressed; `morebottom`: at the version line;
+    /// `moreabout`: «عن المنصة» open.
+    static var moreScroll: String? {
+        switch arg {
+        case "moreupdate": return "content"
+        case "morebottom": return "version"
+        default: return nil
+        }
+    }
+    static var moreCheckNow: Bool { arg == "moreupdate" }
+    static var moreOpenAbout: Bool { arg == "moreabout" }
     /// `nod`: the names home scrolled to «اسم اليوم».
     static var scrollToNameOfDay: Bool { arg == "nod" }
     /// `name20pray` / `name20sunnah` / `name1`: the name page scrolled to its tabs.

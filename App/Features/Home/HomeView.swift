@@ -3,11 +3,14 @@ import SwiftUI
 /// «الرئيسية»: the two treasures, stacked (owner's choice: one above the other, full width).
 struct HomeView: View {
     @Environment(\.colorScheme) private var scheme
-    private let namesCount = Content.names()?.names.count ?? 0
-    private let sunanCount = Content.sunan()?.stats.items ?? 0
+    /// Counts follow a content update.
+    @ObservedObject private var sync = PackSync.shared
 
     var body: some View {
         let t = Theme(scheme)
+        let _ = sync.contentVersion
+        let namesCount = NamesRepo.shared.names.count
+        let sunanCount = SunanRepo.shared.index?.stats.items ?? 0
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
@@ -57,6 +60,15 @@ enum HomeDestination: Hashable {
     case names, sunan
     case n(NamesRoute)
     case s(SunanRoute)
+}
+
+extension HomeDestination {
+    var section: PackSection {
+        switch self {
+        case .names, .n: return .names
+        case .sunan, .s: return .sunan
+        }
+    }
 }
 
 private struct TreasureCard: View {

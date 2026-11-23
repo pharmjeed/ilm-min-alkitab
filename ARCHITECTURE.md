@@ -6,15 +6,18 @@ SwiftUI, iOS 17+, Swift 5 language mode, XcodeGen (`project.yml`). No third-part
 ## Layout
 ```
 App/
-  IlmApp.swift            @main, RootView (onboarding gate), MainTabView (3 tabs), Route (CI launch args)
-  Theme/                  Theme.swift (palette = the site's tokens, AppFont, Num), BrandMark.swift
-  Packs/                  PackStore (bundled `packs/` folder + downloaded versions), Models (contract mirror)
+  IlmApp.swift            @main (+ AppDelegate: notification delegate), RootView (onboarding gate, appearance,
+                          foreground hooks), MainTabView (3 tabs, notification taps), AppNav, Route (CI launch args)
+  Theme/                  Theme.swift (palette = the site's tokens, AppFont × TextScale, Appearance, Num), BrandMark.swift
+  Packs/                  PackStore (bundled `packs/` folder + downloaded versions), PackSync (updates), Models (contract mirror)
   Features/
     Onboarding/           notifications-only first launch
     Home/                 the two treasures
     Names/                mirror of the website's names pages (see below)
     Sunan/                mirror of the website's /sunan pages
-    Saved/, More/, Account/
+    Reminder/             MorningReminder (rolling window, NotificationText, NotificationRouter), ReminderProbe (CI only)
+    Saved/                «محفوظاتي»: explains that saving needs the account (no local saving — owner's rule)
+    More/                 «المزيد» settings + MarkdownPageView (about / methodology from the names pack `pages`)
 Resources/                Fonts (Thmanyah, Amiri), Assets.xcassets (AppIcon, LaunchBackground)
 assets/packs/<section>/   bundled content snapshot (*.pack = JSON) — written ONLY by the platform's app:packs
 ci/                       screens.sh + routes.txt (CI screenshots)
@@ -26,9 +29,19 @@ Contract: platform `lib/app-packs/types.ts`. Swift mirror: `App/Packs/Models.swi
   teaches, whenRecall, whenPray, summary, verses with prev/next/context/reason/adds, hadiths, situations with scoped
   evidence). The producer already applied the website's display rules.
 - sunan: `index.json` (domains, needs, states, stars, macro, pairs, methodology, chunk refs) + `need-NN[-p].json`.
-- Sync (to build): GET `/api/app/v1/manifest`; for a newer section version download each file from
-  `/api/app/v1/packs/<section>/<version>/<file>`, verify sha256, move into Application Support/packs/<section>/<version>/,
-  then set `packs.active.<section>` and clear PackStore's cache. Any failure keeps the current version.
+- Sync (`PackSync`, after the first frame of a launch, again on return after 12 h, and «تحقّق من التحديث» in «المزيد»;
+  never in CI): GET `/api/app/v1/manifest` (exact URL, no query); for each section whose version differs from the
+  current one (active download, else bundled) and whose `schema` ≤ 1, `PackDownloader` downloads every listed file from
+  `/api/app/v1/packs/<section>/<version>/<file>` into a temp dir (4 at a time), checks byte size + sha256 (CryptoKit),
+  decodes the index (version, chunk/extras files present), then moves the folder to
+  Application Support/packs/<section>/<version>/ and marks it `packs.ready.<section>`.
+  Activation (`activateReady`): `packs.active.<section>` = version, PackStore cache cleared, `NamesRepo`/`SunanRepo`
+  rebuilt, `NameDetails`/`SunanStore` caches reset, older downloads deleted, `contentVersion` bumped (Home and «المزيد»
+  observe it), reminders rescheduled. It waits while a page of that section is in the «الرئيسية» stack (ids such as
+  domain/need/state change between versions); from «المزيد» it goes back out of those pages and applies at once.
+  `PackStore.prepareAtLaunch()` (App init) applies a waiting version, and drops downloads when the bundled snapshot
+  changed (new app build). The active download is used for the whole section, never mixed with bundled files.
+  Any failure keeps the current version.
 
 ## Names section = the website
 Screens map 1:1 to the site's routes and reuse its wording and order:
@@ -48,4 +61,21 @@ day.json, deeds.json), all decoded off the main thread and cached.
 
 ## Daily logic (must match the site)
 - name of day: `utcDay = floor(epochMs / 86_400_000)`; `sequential_by_date` → `names[utcDay % names.count]`.
-- morning notification: rolling 30 local notifications at the chosen time, each opening that day's name.
+- morning notification (`MorningReminder`): rolling 30 local notifications at the chosen time (default 07:00,
+  `reminder.hour/minute`, off with `reminder.enabled`), ids `morning-YYYY-MM-DD`; the name is `nameOfDay(fireDate)`;
+  title «اسم اليوم: <name>», body = the card's `excerpt` cut to ≤ 140 scalars by `NotificationText` (never inside an
+  ayah: cut before «﴿» or keep the whole ayah), userInfo `{route: "name", nameId}`. Rescheduled on launch / foreground,
+  after onboarding, on time or switch change, and after a names update. Taps (cold start too) → `NotificationRouter`
+  → `AppNav.openName` → «الرئيسية» › names › the name page.
+
+## Settings («المزيد»)
+- appearance `appearance` = system | dark (default) | light → `preferredColorScheme` + the windows' style.
+- text size `textScale` = 0 | 1 | 2 (×1, ×1.15, ×1.3) → `TextScale` (@Observable) multiplies every `AppFont` size,
+  on top of Dynamic Type.
+- content status (versions as dates in Arabic, bundled / downloaded, last check), feedback → the site's `/suggest`,
+  «الحساب — قريبًا» placeholder, version line.
+
+## CI routes (ci/routes.txt `name|args[|wait]`)
+`more`, `moreupdate` (presses «تحقّق من التحديث»), `morebottom`, `moreabout`; `-appearance light`, `-textScale 2`;
+`notif` / `notiftap` with `-ciNotify YES` (provisional permission, schedules the real window; overlay of the pending
+ones + a live banner / opens what a tap on the first one opens).

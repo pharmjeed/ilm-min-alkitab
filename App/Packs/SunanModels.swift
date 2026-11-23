@@ -7,6 +7,8 @@ import Foundation
 
 struct SunanIndex: Decodable {
     let version: String
+    /// ISO-8601 UTC — shown in «المزيد» as the content's date.
+    let generatedAt: String?
     let stats: SunanStats
     let domains: [SunanDomain]
     let needs: [SunanNeed]
