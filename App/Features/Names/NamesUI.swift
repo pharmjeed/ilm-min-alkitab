@@ -241,8 +241,10 @@ struct SituationRowView: View {
 
 struct Crumb {
     let label: String
-    let route: NamesRoute
-    init(_ label: String, _ route: NamesRoute) { self.label = label; self.route = route }
+    let dest: HomeDestination
+    init(_ label: String, _ route: NamesRoute) { self.label = label; self.dest = .n(route) }
+    init(_ label: String, _ route: SunanRoute) { self.label = label; self.dest = .s(route) }
+    init(_ label: String, dest: HomeDestination) { self.label = label; self.dest = dest }
 }
 
 /// components/feel/FeelCrumbs.tsx — the path when it is deeper than one step (the native back button replaces «رجوع»).
@@ -256,7 +258,7 @@ struct CrumbsView: View {
         if trail.count > 1 {
             FlowLayout(spacing: 6, lineSpacing: 4) {
                 ForEach(Array(trail.enumerated()), id: \.offset) { _, c in
-                    Button { nav.open(c.route) } label: {
+                    Button { nav.open(dest: c.dest) } label: {
                         Text(c.label).underline(color: t.gold.opacity(0.4)).foregroundStyle(t.gold.opacity(0.9))
                     }
                     .buttonStyle(.plain)

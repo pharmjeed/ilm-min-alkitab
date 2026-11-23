@@ -1,20 +1,6 @@
 import SwiftUI
 
-// Temporary screens — replaced section by section (names: Features/Names; sunan will mirror the website's «/sunan»).
-
-struct SunanHomeView: View {
-    @Environment(\.colorScheme) private var scheme
-    var body: some View {
-        let t = Theme(scheme)
-        List(Content.sunan()?.domains ?? []) { d in
-            Text(d.title).font(AppFont.serif(18)).foregroundStyle(t.cream)
-                .listRowBackground(t.surface)
-        }
-        .scrollContentBackground(.hidden)
-        .background(t.bg)
-        .navigationTitle("سر علم السنن والأسباب")
-    }
-}
+// Temporary screens — replaced section by section (names: Features/Names; sunan: Features/Sunan).
 
 struct SavedView: View {
     @Environment(\.colorScheme) private var scheme

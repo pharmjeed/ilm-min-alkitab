@@ -183,26 +183,7 @@ struct ScopedEvidence: Decodable, Hashable {
     let bridge: String?
 }
 
-// MARK: - SUNAN (minimal)
-
-struct SunanIndex: Decodable {
-    let version: String
-    let stats: SunanStats
-    let domains: [SunanDomain]
-}
-
-struct SunanStats: Decodable {
-    let domains: Int
-    let needs: Int
-    let states: Int
-    let items: Int
-}
-
-struct SunanDomain: Decodable, Identifiable, Hashable {
-    let id: Int
-    let title: String
-    let needIds: [Int]
-}
+// MARK: - SUNAN: see SunanModels.swift
 
 enum Content {
     static func names() -> NamesIndex? { try? PackStore.shared.load(NamesIndex.self, .names, "index.json") }

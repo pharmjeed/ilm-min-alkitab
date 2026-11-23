@@ -36,6 +36,16 @@ Screens map 1:1 to the site's routes and reuse its wording and order:
 (the name inside the situation) · `/names` (all names) · `/names/<id>` (tabs: الآيات · في السنة · ماذا يعلّمني ·
 متى أستحضره · متى أدعو به · الزبدة) · `/feel/anfus` · `/ask` (POST `/api/ask/instant`).
 
+## Sunan section = the website
+`App/Features/Sunan/*` mirrors `app/sunan/**` (wording from `lib/sunan/view.ts` and `components/sunan/*`):
+`/sunan` (`SunanHomeView`: header + search, «برنامج اليوم والليلة», «ماذا يجلب هذا العمل؟», 12 domains, «وفي الأصول»)
+→ `/sunan/<domain>` (ما تعمله · ما تتجنّبه) → `/sunan/<domain>/<need>` (states) → `/sunan/<domain>/<need>/<state>`
+(representatives, «ابدأ بهذه» first) → `/sunan/item/<fp>` (easy line, طريقة التطبيق, full text with cause/result runs,
+folds, بمعناها, مداخل أخرى) · `/sunan/search` · `/sunan/macro` · `/sunan/pairs` · `/sunan/method` · `/sunan/day[/<time>]`
+· `/sunan/deeds[/<deed>]`. Routes: `SunanRoute` (`HomeDestination.s`). Data: `SunanRepo` (index, lookups, state search)
+and the `SunanStore` actor (chunks, item by fp — state hint, then «ابدأ بهذه», then a lazily built fp → chunk map —,
+day.json, deeds.json), all decoded off the main thread and cached.
+
 ## Daily logic (must match the site)
 - name of day: `utcDay = floor(epochMs / 86_400_000)`; `sequential_by_date` → `names[utcDay % names.count]`.
 - morning notification: rolling 30 local notifications at the chosen time, each opening that day's name.

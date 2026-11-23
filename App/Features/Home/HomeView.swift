@@ -46,15 +46,17 @@ struct HomeView: View {
             case .names: NamesHomeView()
             case .sunan: SunanHomeView()
             case .n(let route): NamesRouteView(route: route)
+            case .s(let route): SunanRouteView(route: route)
             }
         }
     }
 }
 
-/// Everything the «الرئيسية» stack can show. `.n` = a page of the names section (mirror of the website).
+/// Everything the «الرئيسية» stack can show. `.n` / `.s` = a page of the names / sunan section (mirror of the website).
 enum HomeDestination: Hashable {
     case names, sunan
     case n(NamesRoute)
+    case s(SunanRoute)
 }
 
 private struct TreasureCard: View {
