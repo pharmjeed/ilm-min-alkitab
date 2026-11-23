@@ -1,0 +1,57 @@
+name: TestFlight upload
+# Manual: archives a signed Release build and uploads it to App Store Connect (TestFlight).
+# Needs: repo variables APPLE_TEAM_ID, ASC_KEY_ID, ASC_ISSUER_ID; repo secret ASC_KEY_P8 (the .p8 file contents).
+on:
+  workflow_dispatch:
+jobs:
+  upload:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      TEAM: ${{ vars.APPLE_TEAM_ID }}
+      KEY_ID: ${{ vars.ASC_KEY_ID }}
+      ISSUER: ${{ vars.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check configuration
+        run: |
+          for v in TEAM KEY_ID ISSUER; do [ -n "${!v}" ] || { echo "missing $v"; exit 1; }; done
+          [ -n "${{ secrets.ASC_KEY_P8 }}" ] || { echo "missing secret ASC_KEY_P8"; exit 1; }
+      - name: Tools
+        run: brew install xcodegen && xcodebuild -version
+      - name: Generate project
+        run: xcodegen generate
+      - name: App Store Connect key
+        env:
+          P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$P8" > "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8"
+          echo "KEY_PATH=$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" >> "$GITHUB_ENV"
+      - name: Archive (Release, automatic signing)
+        run: |
+          xcodebuild -project IlmMinAlKitab.xcodeproj -scheme IlmMinAlKitab -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/Ilm.xcarchive \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            -allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            archive > archive.log 2>&1 || { grep -E "error:|requires a provisioning|No Accounts|No profiles" archive.log | sort -u | head -60; tail -60 archive.log; exit 1; }
+      - name: Export and upload to App Store Connect
+        run: |
+          sed "s/__TEAM__/$TEAM/" ci/ExportOptions.plist > build/ExportOptions.plist
+          xcodebuild -exportArchive -archivePath build/Ilm.xcarchive -exportOptionsPlist build/ExportOptions.plist \
+            -exportPath build/export -allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" > export.log 2>&1 \
+            || { grep -E "error|Error" export.log | sort -u | head -60; tail -60 export.log; exit 1; }
+          tail -20 export.log
+      - name: Clean key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: testflight-logs
+          path: |
+            archive.log
+            export.log
+          if-no-files-found: ignore
