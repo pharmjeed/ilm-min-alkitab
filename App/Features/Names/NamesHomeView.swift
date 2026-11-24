@@ -130,7 +130,8 @@ private struct HeroSection: View {
             .padding(.top, 28)
             HStack(spacing: 12) {
                 NavigationLink(value: HomeDestination.n(.allNames())) { Text("تصفّح الأسماء") }.buttonStyle(PrimaryPill())
-                NavigationLink(value: HomeDestination.n(.ask())) { Text("اسأل عن موقفك") }.buttonStyle(SecondaryPill())
+                // owner 2026-11-25: both buttons in one colour
+                NavigationLink(value: HomeDestination.n(.ask())) { Text("اسأل عن موقفك") }.buttonStyle(PrimaryPill())
             }
             .padding(.top, 24)
         }
