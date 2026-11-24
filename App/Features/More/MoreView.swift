@@ -3,7 +3,7 @@ import UIKit
 import UserNotifications
 
 /// «المزيد»: appearance, text size, the morning reminder, content updates, about / methodology (from the names pack),
-/// feedback, the account placeholder and the version line.
+/// feedback, the optional account (sign in / sign out / delete) and the version line.
 struct MoreView: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var phase
@@ -15,6 +15,8 @@ struct MoreView: View {
     @State private var auth: UNAuthorizationStatus?
     @State private var showAbout = Route.moreOpenAbout
     @State private var ciDone = false
+    @State private var signingIn = false
+    @State private var confirmDelete = false
 
     static let sampleAyah = "﴿وَلِلَّهِ الْأَسْمَاءُ الْحُسْنَىٰ فَادْعُوهُ بِهَا﴾"
 
@@ -53,6 +55,13 @@ struct MoreView: View {
         }
         .navigationTitle("المزيد")
         .navigationDestination(isPresented: $showAbout) { MarkdownPageView(page: .about) }
+        .sheet(isPresented: $signingIn) { SaveSignInSheet(item: nil) }
+        .confirmationDialog("حذف الحساب", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("احذف حسابي نهائيًا", role: .destructive) { Task { _ = await Account.shared.deleteAccount() } }
+            Button("إلغاء", role: .cancel) {}
+        } message: {
+            Text("يُحذف حسابك وكل ما حفظته فيه، ولا يمكن استرجاعه.")
+        }
         .onChange(of: phase) { _, p in if p == .active { Task { await refreshAuth() } } }
         .onChange(of: reminderOn) { _, on in Task { await reminderToggled(on) } }
         .onChange(of: hour) { _, _ in ReminderScheduler.shared.reschedule() }
@@ -203,12 +212,41 @@ struct MoreView: View {
     }
 
     private func accountSection(_ t: Theme) -> some View {
-        Section {
-            rowLabel(t, "person.crop.circle", "الحساب — قريبًا")
+        let account = Account.shared
+        return Section {
+            if let s = account.session {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("مسجّل بحساب «\(account.providerName)»").font(AppFont.sans(17)).foregroundStyle(t.cream)
+                    if let email = s.email, !email.isEmpty {
+                        Text(email).font(AppFont.sans(14)).foregroundStyle(t.muted)
+                            .environment(\.layoutDirection, .leftToRight)
+                    }
+                }
+                Button { Task { await account.signOut() } } label: {
+                    rowLabel(t, "rectangle.portrait.and.arrow.right", "تسجيل الخروج")
+                }
+                Button { confirmDelete = true } label: {
+                    Label {
+                        Text("حذف الحساب").font(AppFont.sans(17)).foregroundStyle(t.neg)
+                    } icon: {
+                        Image(systemName: "trash").foregroundStyle(t.neg)
+                    }
+                }
+                .disabled(account.busy)
+                if let e = account.errorText {
+                    Text(e).font(AppFont.sans(14)).foregroundStyle(t.neg)
+                }
+            } else {
+                Button { signingIn = true } label: {
+                    rowLabel(t, "person.crop.circle", "سجّل الدخول بـ«آبل» أو «قوقل»")
+                }
+            }
         } header: {
             header("الحساب", t)
         } footer: {
-            footer("الحساب اختياري، ويُطلب عند الحفظ فقط.", t)
+            footer(account.isSignedIn
+                   ? "ما تحفظه في «محفوظاتي» محفوظٌ في حسابك، وتجده على أي جهازٍ تدخل منه."
+                   : "الحساب اختياري، ويُطلب عند الحفظ فقط.", t)
         }
         .listRowBackground(t.surface)
     }

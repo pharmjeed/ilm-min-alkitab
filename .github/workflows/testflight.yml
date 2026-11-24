@@ -38,13 +38,25 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             archive > archive.log 2>&1 || { grep -E "error:|requires a provisioning|No Accounts|No profiles" archive.log | sort -u | head -60; tail -60 archive.log; exit 1; }
           tail -5 archive.log
+      # An unsigned archive carries no entitlements, and the export re-signs with the entitlements it finds in the
+      # binary — so sign the archived app ad hoc with ours (Sign in with Apple) before exporting.
+      - name: Embed entitlements
+        run: |
+          APP=$(find build/Ilm.xcarchive/Products/Applications -maxdepth 1 -name '*.app' | head -1)
+          codesign --force --sign - --timestamp=none --entitlements Config/IlmMinAlKitab.entitlements "$APP"
+          codesign -d --entitlements - "$APP" 2>/dev/null | grep -q applesignin || { echo "entitlements missing in the archive"; exit 1; }
+      - name: Export locally and check the signed app
+        run: |
+          sed -e "s/__TEAM__/$TEAM/" -e "s#<string>upload</string>#<string>export</string>#" ci/ExportOptions.plist > build/ExportLocal.plist
+          xcodebuild -exportArchive -archivePath build/Ilm.xcarchive -exportOptionsPlist build/ExportLocal.plist             -exportPath build/local -allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH"             -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" > export-local.log 2>&1             || { grep -E "error|Error" export-local.log | sort -u | head -60; tail -60 export-local.log; exit 1; }
+          mkdir -p build/check && unzip -q -o build/local/*.ipa -d build/check
+          APP=$(find build/check/Payload -maxdepth 1 -name '*.app' | head -1)
+          codesign -d --entitlements - "$APP" 2>/dev/null | tee entitlements.txt
+          grep -q applesignin entitlements.txt || { echo "Sign in with Apple entitlement missing from the signed app"; exit 1; }
       - name: Export and upload to App Store Connect
         run: |
           sed "s/__TEAM__/$TEAM/" ci/ExportOptions.plist > build/ExportOptions.plist
-          xcodebuild -exportArchive -archivePath build/Ilm.xcarchive -exportOptionsPlist build/ExportOptions.plist \
-            -exportPath build/export -allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" \
-            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" > export.log 2>&1 \
-            || { grep -E "error|Error" export.log | sort -u | head -60; tail -60 export.log; exit 1; }
+          xcodebuild -exportArchive -archivePath build/Ilm.xcarchive -exportOptionsPlist build/ExportOptions.plist             -exportPath build/export -allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH"             -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" > export.log 2>&1             || { grep -E "error|Error" export.log | sort -u | head -60; tail -60 export.log; exit 1; }
           tail -20 export.log
       - name: Clean key
         if: always()
@@ -55,5 +67,7 @@ jobs:
           name: testflight-logs
           path: |
             archive.log
+            export-local.log
+            entitlements.txt
             export.log
           if-no-files-found: ignore

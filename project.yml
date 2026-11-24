@@ -33,6 +33,7 @@ targets:
         INFOPLIST_FILE: App/Info.plist
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1"   # iPhone only (the iOS preset would otherwise make it universal)
+        CODE_SIGN_ENTITLEMENTS: Config/IlmMinAlKitab.entitlements   # Sign in with Apple
     info:
       path: App/Info.plist
       properties:

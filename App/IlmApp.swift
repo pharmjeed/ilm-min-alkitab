@@ -93,6 +93,7 @@ struct MainTabView: View {
             Task { await PackSync.shared.activateReady(force: false) }
         }
         .task { probe = await ReminderProbe.runIfRequested() }
+        .task { if Account.shared.isSignedIn { await SavedStore.shared.reload() } }
     }
 }
 

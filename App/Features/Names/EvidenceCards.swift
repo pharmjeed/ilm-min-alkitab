@@ -197,7 +197,7 @@ struct VerseCardView: View {
 
             Rectangle().fill(t.line).frame(height: 1).padding(.top, 20)
             FlowLayout(spacing: 8, lineSpacing: 8) {
-                FavoritePill(item: "\(nameLabel) — \(v.surah) \(v.a)")
+                FavoritePill(key: .position(name: nameId, surah: v.s, ayah: v.a), item: "\(nameLabel) — \(v.surah) \(v.a)")
                 CopyPill(label: "نسخ الآية", text: copyText)
                 SharePill(title: "\(nameLabel) — \(v.surah) \(v.a)", text: "﴿\(v.text)﴾ \(ref)", url: link)
                 if let inside {
