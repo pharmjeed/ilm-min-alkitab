@@ -25,7 +25,8 @@ struct HomeView: View {
                 NavigationLink(value: HomeDestination.sunan) {
                     TreasureCard(title: "سر علم السنن والأسباب",
                                  line: "لكل حاجةٍ سببٌ من الكتاب والسنة: افعل كذا، يكن لك كذا.",
-                                 accent: t.result, fill: Color(hex: scheme == .dark ? 0x183B35 : 0xE3F0E6), systemIcon: "book")
+                                 // owner 2026-11-25: both cards in one colour (the gold of the names card)
+                                 accent: t.gold, fill: t.surface, systemIcon: "book")
                 }
             }
             .padding(16)
