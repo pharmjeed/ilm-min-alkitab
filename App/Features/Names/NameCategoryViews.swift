@@ -88,8 +88,8 @@ struct NameCategoryCard: View {
                     .font(AppFont.sans(13)).foregroundStyle(t.gold.opacity(0.85)).lineSpacing(5)
             }
             Rectangle().fill(t.line).frame(height: 1)
+            // owner 2026-11-24: the card's count removed
             HStack {
-                Text(Arabic.count(group.count, NameCategories.forms))
                 Spacer(minLength: 8)
                 Text("افتح ←")
             }

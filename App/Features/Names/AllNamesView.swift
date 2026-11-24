@@ -49,13 +49,8 @@ struct AllNamesView: View {
         let groups = byCategory ? NameCategories.groups(repo.names) : []
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                // owner 2026-11-24: the counts line under the title removed
                 Text("كل الأسماء").font(AppFont.serif(30)).foregroundStyle(t.cream)
-                (Text("\(repo.names.count)").foregroundColor(t.gold)
-                    + Text(" صيغة بالترتيب المعتمد · ")
-                    + Text(Num.fmt(repo.index?.stats.positions ?? 0)).foregroundColor(t.gold)
-                    + Text(" موضعًا في القرآن"))
-                    .font(AppFont.sans(16)).foregroundStyle(t.muted)
-                    .padding(.top, 4)
 
                 FlowLayout(spacing: 8, lineSpacing: 8) {
                     ForEach(Filter.allCases, id: \.self) { f in
@@ -112,9 +107,7 @@ struct AllNamesView: View {
                 .padding(.top, 12)
 
                 if !groups.isEmpty {
-                    (Text("\(groups.count)").foregroundColor(t.gold) + Text(" تصنيفات — اختر تصنيفًا تظهر أسماؤه:"))
-                        .font(AppFont.sans(14)).foregroundStyle(t.muted)
-                        .padding(.top, 12)
+                    // owner 2026-11-24: the «N تصنيفات — اختر تصنيفًا…» line removed
                     LazyVStack(spacing: 12) {
                         ForEach(Array(groups.enumerated()), id: \.element.id) { i, g in
                             NamesLink(.nameCategory(g.title)) { NameCategoryCard(group: g, number: i + 1) }
