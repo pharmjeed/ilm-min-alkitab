@@ -51,7 +51,10 @@ struct NameCard: Decodable, Identifiable, Hashable {
     let positions: Int
     let surahs: Int
     let hadiths: Int
+    /// «الفئة» — every name since 2026-11-24 (the classification of alhosna.net).
     let category: String?
+    /// «ترتيب الفئة»: the name's place in that classification (1…).
+    let categoryOrder: Int?
 }
 
 struct Door: Decodable, Identifiable, Hashable {

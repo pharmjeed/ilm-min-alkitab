@@ -1,6 +1,8 @@
 import SwiftUI
 
 /// /names — app/names/page.tsx + components/names/NamesExplorer.tsx (filters, sort, search inside the list).
+/// With «الفئة» in the pack (owner 2026-11-24) the page shows the main categories as on alhosna.net; typing a search
+/// (or choosing «مفرد» / «مركّب») shows the matching names as one list.
 struct AllNamesView: View {
     @Environment(\.colorScheme) private var scheme
     @EnvironmentObject private var nav: AppNav
@@ -36,9 +38,15 @@ struct AllNamesView: View {
         return list
     }
 
+    /// The categories instead of the flat list: the pack has them and nothing narrows the list.
+    private var byCategory: Bool {
+        NameCategories.available(repo.names) && Arabic.normalize(q).isEmpty && filter == .all && sort == .order
+    }
+
     var body: some View {
         let t = Theme(scheme)
         let shown = visible
+        let groups = byCategory ? NameCategories.groups(repo.names) : []
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Text("كل الأسماء").font(AppFont.serif(30)).foregroundStyle(t.cream)
@@ -103,6 +111,17 @@ struct AllNamesView: View {
                 .overlay(Capsule().stroke(t.line, lineWidth: 1))
                 .padding(.top, 12)
 
+                if !groups.isEmpty {
+                    (Text("\(groups.count)").foregroundColor(t.gold) + Text(" تصنيفات — اختر تصنيفًا تظهر أسماؤه:"))
+                        .font(AppFont.sans(14)).foregroundStyle(t.muted)
+                        .padding(.top, 12)
+                    LazyVStack(spacing: 12) {
+                        ForEach(Array(groups.enumerated()), id: \.element.id) { i, g in
+                            NamesLink(.nameCategory(g.title)) { NameCategoryCard(group: g, number: i + 1) }
+                        }
+                    }
+                    .padding(.top, 16)
+                } else {
                 (Text("\(shown.count)").foregroundColor(t.gold) + Text(" من \(repo.names.count) صيغة"))
                     .font(AppFont.sans(14)).foregroundStyle(t.muted)
                     .padding(.top, 12)
@@ -120,6 +139,7 @@ struct AllNamesView: View {
                         }
                     }
                     .padding(.top, 16)
+                }
                 }
             }
             .multilineTextAlignment(.leading)

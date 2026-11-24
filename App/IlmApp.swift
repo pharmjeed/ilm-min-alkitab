@@ -135,6 +135,10 @@ final class AppNav: ObservableObject {
         if let i = homePath.firstIndex(where: { $0.section == s }) { homePath.removeSubrange(i...) }
     }
     /// Sibling pages (the previous / next category or time of «برنامج اليوم والليلة», of «ماذا يجلب هذا العمل؟») replace the current page.
+    func replaceLastNames(_ route: NamesRoute) {
+        if !homePath.isEmpty { homePath.removeLast() }
+        homePath.append(.n(route))
+    }
     func replaceLast(_ route: SunanRoute) {
         if !homePath.isEmpty { homePath.removeLast() }
         homePath.append(.s(route))
@@ -170,6 +174,8 @@ enum Route {
         case "name20sunnah": return [.names, .n(.name(20, tab: .sunnah))]
         case "name1": return [.names, .n(.name(1))]
         case "allnames": return [.names, .n(.allNames())]
+        case "namecat": return [.names, .n(.allNames()), .n(.nameCategory("أسماء الألوهية"))]
+        case "namecat2": return [.names, .n(.allNames()), .n(.nameCategory("توابع الأسماء الحسنى"))]
         case "anfus": return [.names, .n(.feel), .n(.anfus())]
         case "anfusgroup":
             let slug = NamesRepo.shared.inner.first?.slug ?? ""
