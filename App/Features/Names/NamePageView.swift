@@ -290,6 +290,7 @@ private struct NameHero: View {
             }
             .padding(.top, 24)
             FlowLayout(spacing: 8, lineSpacing: 8) {
+                FavoritePill(key: .name(detail.id), item: detail.name)
                 SharePill(title: Arabic.nameTitle(detail.name), text: "\(detail.name) — مواضعه في القرآن ومتى يُدعى به",
                           url: Site.nameURL(detail.id))
                 NavigationLink(value: HomeDestination.n(.ask(question: "ما الذي يعلّمني اسم \(detail.name) ومتى أدعو به؟"))) {

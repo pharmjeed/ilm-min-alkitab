@@ -1,20 +1,28 @@
 import SwiftUI
 import AuthenticationServices
 
-/// ♡ on a verse card or a sunnah: saves into the optional account; signed out, it asks to sign in first
-/// and saves right after.
+/// ♡ «احفظ» on a name, a situation, a sunan state, a verse or a sunnah. Signed in: saves it and opens
+/// «أضِف إلى مجموعة» (owner 2026-11-24: collections in «محفوظاتي»). Signed out: asks to sign in first,
+/// saves right after, then offers the collections.
 struct FavoritePill: View {
     let key: SavedKey
     let item: String
-    @State private var asking = Route.consumeAutoSaveSheet()
+    @State private var sheet: SaveSheet? = Route.consumeAutoSaveSheet() ? .signIn : nil
+    @State private var thenCollections = false
+
+    private enum SaveSheet: Identifiable {
+        case signIn, collections
+        var id: Int { self == .signIn ? 0 : 1 }
+    }
 
     var body: some View {
         let on = Account.shared.isSignedIn && SavedStore.shared.contains(key)
         Button {
             if Account.shared.isSignedIn {
-                Task { await SavedStore.shared.toggle(key) }
+                if !on { Task { await SavedStore.shared.set(key, on: true) } }
+                sheet = .collections
             } else {
-                asking = true
+                sheet = .signIn
             }
         } label: {
             ActionPill(on: on) {
@@ -22,8 +30,131 @@ struct FavoritePill: View {
             }
         }
         .buttonStyle(.plain)
-        .sheet(isPresented: $asking) {
-            SaveSignInSheet(item: item) { await SavedStore.shared.set(key, on: true) }
+        .sheet(item: $sheet, onDismiss: {
+            if thenCollections {
+                thenCollections = false
+                sheet = .collections
+            }
+        }) { s in
+            switch s {
+            case .signIn:
+                SaveSignInSheet(item: item) {
+                    await SavedStore.shared.set(key, on: true)
+                    thenCollections = true
+                }
+            case .collections:
+                CollectionsSheet(key: key, item: item)
+            }
+        }
+    }
+}
+
+/// «أضِف إلى مجموعة»: the item is in «محفوظاتي»; tick the collections it belongs to, or make a new one.
+struct CollectionsSheet: View {
+    let key: SavedKey
+    let item: String
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var scheme
+    @State private var newTitle = ""
+    @State private var creating = false
+    @FocusState private var typing: Bool
+
+    var body: some View {
+        let t = Theme(scheme)
+        let store = SavedStore.shared
+        let saved = store.contains(key)
+        let inside = store.collectionIds(containing: key)
+        NavigationStack {
+            List {
+                Section {
+                    HStack(spacing: 10) {
+                        Image(systemName: saved ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(saved ? t.gold : t.muted)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(saved ? "في «محفوظاتي»" : "ليس في «محفوظاتي»").font(AppFont.sans(16, .medium))
+                            Text(item).font(AppFont.sans(14)).foregroundStyle(t.muted).lineLimit(2)
+                        }
+                    }
+                }
+                .listRowBackground(t.surface)
+
+                Section {
+                    ForEach(store.collections) { c in
+                        Button {
+                            Task { await store.collect(key, in: c.id, on: !inside.contains(c.id)) }
+                        } label: {
+                            HStack {
+                                Image(systemName: inside.contains(c.id) ? "checkmark.square.fill" : "square")
+                                    .foregroundStyle(inside.contains(c.id) ? t.gold : t.muted)
+                                Text(c.title).font(AppFont.sans(17)).foregroundStyle(t.cream)
+                                Spacer()
+                                Text(Num.fmt(c.items.count)).font(AppFont.sans(14)).foregroundStyle(t.muted)
+                            }
+                        }
+                    }
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus").foregroundStyle(t.gold)
+                        TextField("مجموعة جديدة…", text: $newTitle)
+                            .font(AppFont.sans(17))
+                            .focused($typing)
+                            .submitLabel(.done)
+                            .onSubmit { Task { await create() } }
+                        if !newTitle.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Button("أنشئ") { Task { await create() } }
+                                .font(AppFont.sans(16, .medium)).foregroundStyle(t.gold)
+                                .disabled(creating)
+                        }
+                    }
+                    if let e = store.lastError {
+                        Text(e).font(AppFont.sans(14)).foregroundStyle(t.neg)
+                    }
+                } header: {
+                    Text("أضِفه إلى مجموعة").font(AppFont.sans(14, .medium)).foregroundStyle(t.gold)
+                } footer: {
+                    Text("المجموعات تجمع ما تحفظه كما تحب: أدعية الصباح، أسماء الرحمة، سنن الرزق…")
+                        .font(AppFont.sans(13)).foregroundStyle(t.muted)
+                }
+                .listRowBackground(t.surface)
+
+                if saved {
+                    Section {
+                        Button(role: .destructive) {
+                            Task {
+                                await store.set(key, on: false)
+                                dismiss()
+                            }
+                        } label: {
+                            Label("إزالة من «محفوظاتي»", systemImage: "heart.slash").font(AppFont.sans(16)).foregroundStyle(t.neg)
+                        }
+                    }
+                    .listRowBackground(t.surface)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(t.bg)
+            .foregroundStyle(t.cream)
+            .navigationTitle("احفظ")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("تم") { dismiss() }.font(AppFont.sans(16, .bold)).foregroundStyle(t.gold)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .environment(\.layoutDirection, .rightToLeft)
+    }
+
+    private func create() async {
+        let title = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty, !creating else { return }
+        creating = true
+        defer { creating = false }
+        if let c = await SavedStore.shared.createCollection(title) {
+            newTitle = ""
+            typing = false
+            await SavedStore.shared.collect(key, in: c.id, on: true)
         }
     }
 }
@@ -97,7 +228,7 @@ struct SignInButtons: View {
             } label: {
                 HStack(spacing: 8) {
                     Text("G").font(.system(size: 18, weight: .bold)).foregroundStyle(Color(hex: 0x4285F4))
-                    Text("المتابعة باستخدام «قوقل»").font(AppFont.sans(16, .medium)).foregroundStyle(Color(hex: 0x1F1F1F))
+                    Text("الاستمرار باستخدام «قوقل»").font(AppFont.sans(16, .medium)).foregroundStyle(Color(hex: 0x1F1F1F))
                 }
                 .frame(maxWidth: .infinity, minHeight: 50)
                 .background(Color.white, in: RoundedRectangle(cornerRadius: 12))

@@ -179,6 +179,9 @@ struct SunanStateView: View {
                     .multilineTextAlignment(.leading)
                     .sunanHeader(t, gold: !need.avoid, avoid: need.avoid)
 
+                    FavoritePill(key: .state(state.id), item: state.title)
+                        .padding(.top, 12)
+
                     SunanLoader(key: "state-\(state.id)", load: { try await SunanStore.shared.stateItems(state.id) }) { items in
                         LazyVStack(spacing: 12) {
                             ForEach(Array(SunanText.starFirst(items).enumerated()), id: \.element.id) { i, it in

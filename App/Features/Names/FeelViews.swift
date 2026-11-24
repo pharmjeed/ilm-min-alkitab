@@ -92,6 +92,8 @@ struct SituationView: View {
                     .multilineTextAlignment(.leading)
                     .siteCard(t, border: t.gold.opacity(0.4), padding: 20)
 
+                    FavoritePill(key: .situation(sit.id), item: sit.situation.isEmpty ? sit.label : sit.situation)
+
                     LazyVStack(spacing: 12) {
                         ForEach(Array(sit.names.enumerated()), id: \.offset) { i, n in
                             if let card = repo.card(n.id) {
