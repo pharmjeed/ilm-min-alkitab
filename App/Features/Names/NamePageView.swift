@@ -303,7 +303,7 @@ private struct NameHero: View {
         .padding(.horizontal, 20).padding(.vertical, 32)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(alignment: .topTrailing) {
-            BrandMark(color: t.gold, lineWidth: 6)
+            BrandMark(color: t.gold)
                 .frame(width: 400, height: 400)
                 .opacity(0.05)
                 .offset(x: 140, y: -140)

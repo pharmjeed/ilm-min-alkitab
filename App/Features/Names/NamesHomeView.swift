@@ -40,7 +40,7 @@ private struct HeroSection: View {
     var body: some View {
         let t = Theme(scheme)
         VStack(spacing: 0) {
-            BrandMark(color: t.gold, lineWidth: 7).frame(width: 56, height: 56).padding(.bottom, 20)
+            BrandMark(color: t.gold).frame(width: 56, height: 56).padding(.bottom, 20)
             Text("﴿وَلِلَّهِ الْأَسْمَاءُ الْحُسْنَىٰ فَادْعُوهُ بِهَا﴾")
                 .font(AppFont.amiri(26)).foregroundStyle(t.gold)
                 .multilineTextAlignment(.center).lineSpacing(8)
@@ -68,7 +68,7 @@ private struct HeroSection: View {
         .padding(.horizontal, 20).padding(.vertical, 44)
         .frame(maxWidth: .infinity)
         .background(alignment: .topTrailing) {
-            BrandMark(color: t.gold, lineWidth: 6, showRing: true)
+            BrandMark(color: t.gold)
                 .frame(width: 420, height: 420)
                 .opacity(0.06)
                 .offset(x: 120, y: -120)

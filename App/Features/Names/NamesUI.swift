@@ -325,7 +325,7 @@ struct SaveSignInSheet: View {
     var body: some View {
         let t = Theme(scheme)
         VStack(spacing: 14) {
-            BrandMark(color: t.gold, lineWidth: 7).frame(width: 40, height: 40).padding(.top, 8)
+            BrandMark(color: t.gold).frame(width: 40, height: 40).padding(.top, 8)
             Text("سجّل الدخول لتحفظ").font(AppFont.serif(26)).foregroundStyle(t.cream)
             Text("يُحفظ «\(item)» في حسابك، فتجده في «محفوظاتي» على أي جهازٍ تدخل منه.")
                 .font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.85))

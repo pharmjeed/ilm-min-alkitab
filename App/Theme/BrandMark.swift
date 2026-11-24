@@ -1,35 +1,35 @@
 import SwiftUI
 
-/// «ربع الحزب» star (brand/logo): an axis-aligned square + a 45° square + an inner ring + a dot.
-/// Geometry copied from assets/brand/mark.svg (viewBox 120).
+/// The platform's brand mark «المربّعات المتدرّجة» — the same logo as the website
+/// (platform `brand/logo-mark.svg`, viewBox 120): three squares turned 0°, 22.5° and 45°
+/// with fading strokes, and a dot at the centre.
 struct BrandMark: View {
     var color: Color
-    var lineWidth: CGFloat = 6
-    var showRing = true
+    /// Stroke width in the mark's 120-unit space (the site uses 2.5); never thinner than ~1 pt on screen.
+    var lineWidth: CGFloat = 2.5
+    var showDot = true
 
     var body: some View {
         GeometryReader { geo in
             let s = min(geo.size.width, geo.size.height) / 120
+            let w = max(lineWidth * s, 0.9)
             ZStack {
-                Path { p in
-                    p.addLines([CGPoint(x: 95.36, y: 24.64), CGPoint(x: 95.36, y: 95.36), CGPoint(x: 24.64, y: 95.36), CGPoint(x: 24.64, y: 24.64)].map { $0.scaled(s) })
-                    p.closeSubpath()
-                    p.addLines([CGPoint(x: 110, y: 60), CGPoint(x: 60, y: 110), CGPoint(x: 10, y: 60), CGPoint(x: 60, y: 10)].map { $0.scaled(s) })
-                    p.closeSubpath()
-                }
-                .stroke(color, style: StrokeStyle(lineWidth: lineWidth * s, lineJoin: .miter))
-                if showRing {
-                    Circle().stroke(color.opacity(0.85), lineWidth: 3.25 * s)
-                        .frame(width: 32 * s, height: 32 * s)
-                    Circle().fill(color).frame(width: 10 * s, height: 10 * s)
+                square(104 * s, 0, w, color)
+                square(80 * s, 22.5, w, color.opacity(0.85))
+                square(56 * s, 45, w, color.opacity(0.7))
+                if showDot {
+                    Circle().fill(color).frame(width: 9 * s, height: 9 * s)
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
         .accessibilityHidden(true)
     }
-}
 
-private extension CGPoint {
-    func scaled(_ s: CGFloat) -> CGPoint { CGPoint(x: x * s, y: y * s) }
+    private func square(_ side: CGFloat, _ degrees: Double, _ width: CGFloat, _ c: Color) -> some View {
+        Rectangle()
+            .stroke(c, style: StrokeStyle(lineWidth: width, lineJoin: .round))
+            .frame(width: side, height: side)
+            .rotationEffect(.degrees(degrees))
+    }
 }

@@ -59,7 +59,7 @@ struct NotificationPreview: View {
             Text("هكذا يصلك").font(AppFont.sans(13)).foregroundStyle(t.muted).padding(.horizontal, 16)
             HStack(alignment: .top, spacing: 10) {
                 RoundedRectangle(cornerRadius: 9).fill(Palette.night)
-                    .overlay(BrandMark(color: Palette.gold(.dark), lineWidth: 8).padding(6))
+                    .overlay(BrandMark(color: Palette.gold(.dark)).padding(6))
                     .overlay(RoundedRectangle(cornerRadius: 9).stroke(t.gold.opacity(0.35)))
                     .frame(width: 38, height: 38)
                 VStack(alignment: .leading, spacing: 2) {

@@ -15,7 +15,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
                     Spacer()
-                    BrandMark(color: t.gold, lineWidth: 7).frame(width: 30, height: 30)
+                    BrandMark(color: t.gold).frame(width: 30, height: 30)
                     Text("علم من الكتاب").font(AppFont.serif(20)).foregroundStyle(t.cream)
                     Spacer()
                 }
@@ -88,7 +88,7 @@ private struct TreasureCard: View {
                 if let systemIcon {
                     Image(systemName: systemIcon).font(.system(size: 22, weight: .medium)).foregroundStyle(accent)
                 } else {
-                    BrandMark(color: accent, lineWidth: 8, showRing: false).padding(10)
+                    BrandMark(color: accent).padding(10)
                 }
             }
             .frame(width: 48, height: 48)
