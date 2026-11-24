@@ -6,13 +6,15 @@ import SwiftUI
 struct NamesHomeView: View {
     @Environment(\.colorScheme) private var scheme
     private let repo = NamesRepo.shared
+    /// «رحلة الحسنى» — shown on the first entry into the section, and from the hero link afterwards (owner 2026-11-24).
+    @State private var showIntro = false
 
     var body: some View {
         let t = Theme(scheme)
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    HeroSection()
+                    HeroSection { showIntro = true }
                     FeelEntry(heading: false).padding(.top, 24)
                     if let nod = repo.nameOfDay() {
                         NameOfDaySection(card: nod).padding(.top, 48).id("nod")
@@ -28,6 +30,15 @@ struct NamesHomeView: View {
             }
         }
         .namesScreen("كنز الأسماء الحسنى", t)
+        .onAppear {
+            guard NamesIntro.due else { return }
+            NamesIntro.offeredThisLaunch = true
+            showIntro = true
+        }
+        .fullScreenCover(isPresented: $showIntro) {
+            JourneyIntroView(journey: .husna, startPage: NamesIntro.ciPage ?? 0)
+                .environment(\.layoutDirection, .rightToLeft)
+        }
     }
 }
 
@@ -36,6 +47,7 @@ private struct HeroSection: View {
     @Environment(\.colorScheme) private var scheme
     @EnvironmentObject private var nav: AppNav
     @State private var query = ""
+    let openIntro: () -> Void
 
     var body: some View {
         let t = Theme(scheme)
@@ -64,6 +76,16 @@ private struct HeroSection: View {
                 NavigationLink(value: HomeDestination.n(.ask())) { Text("اسأل عن موقفك") }.buttonStyle(SecondaryPill())
             }
             .padding(.top, 24)
+            Button(action: openIntro) {
+                HStack(spacing: 6) {
+                    Image(systemName: "map")
+                    Text("فكرة القسم: رحلة الحسنى ←")
+                }
+                .font(AppFont.sans(15)).foregroundStyle(t.gold)
+                .frame(minHeight: 40)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 14)
         }
         .padding(.horizontal, 20).padding(.vertical, 44)
         .frame(maxWidth: .infinity)

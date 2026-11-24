@@ -2,6 +2,11 @@
 01-onboarding|-onboarded NO
 02-home|-onboarded YES -route home
 03-names|-onboarded YES -route names
+03b-names-intro|-onboarded YES -route namesintro|5
+03c-names-intro-1|-onboarded YES -route namesintro1|5
+03d-names-intro-5|-onboarded YES -route namesintro5|5
+03e-names-intro-end|-onboarded YES -route namesintro6|5
+03f-names-intro-light|-onboarded YES -route namesintro2 -appearance light|5
 04-sunan|-onboarded YES -route sunan
 05-saved|-onboarded YES -route saved
 06-more|-onboarded YES -route more

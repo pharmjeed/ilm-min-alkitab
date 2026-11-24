@@ -201,7 +201,7 @@ enum Route {
         case "spairs": return [.sunan, .s(.pairs)]
         case "smethod": return [.sunan, .s(.method)]
         case "ssearch": return [.sunan, .s(.search(query: "رزق"))]
-        default: return []
+        default: return arg.hasPrefix("namesintro") ? [.names] : []  // «رحلة الحسنى» over the names home
         }
     }
 
