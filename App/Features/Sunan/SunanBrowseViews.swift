@@ -19,6 +19,9 @@ struct SunanDomainView: View {
                         Text(SunanText.title).font(AppFont.sans(14)).foregroundStyle(t.gold)
                             .frame(maxWidth: .infinity, alignment: .center)
                         Text(domain.title).font(AppFont.serif(30)).foregroundStyle(t.cream)
+                        if let d = domain.description, !d.isEmpty {
+                            Text(d).font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(8).padding(.top, 4)
+                        }
                         Text("اختر الحاجة الأقرب إلى ما تريد، أو ما تخشى أن يكون سببًا لما أصابك.")
                             .font(AppFont.sans(16)).foregroundStyle(t.muted).lineSpacing(8).padding(.top, 4)
                     }

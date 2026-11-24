@@ -96,9 +96,11 @@ struct SunanHomeView: View {
             Text("لكل نتيجةٍ سبب").font(AppFont.serif(32)).foregroundStyle(t.cream).padding(.top, 4)
             Text(SunanText.lead).font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(9)
                 .padding(.top, 12)
-            Text("\(SunanText.count(st.items, SunanText.sunan)) من القرآن والسنة، في \(SunanText.count(st.domains, SunanText.domains)) و\(SunanText.count(st.needs, SunanText.needs)) و\(SunanText.count(st.states, SunanText.states)) — اختر حاجتك، ثم حالك، تجد أسبابها ونتائجها بنصوصها.")
-                .font(AppFont.sans(14)).foregroundStyle(t.muted).lineSpacing(7)
-                .padding(.top, 8)
+            // owner 2026-11-24: the counts line gave way to the verse (whole, as in quran.json — الكهف 84)
+            Text(SunanText.sababVerse).font(AppFont.amiri(22)).foregroundStyle(t.gold).lineSpacing(8)
+                .padding(.top, 16)
+            Text(SunanText.sababRef).font(AppFont.sans(12)).foregroundStyle(t.muted)
+                .padding(.top, 4)
             SunanSearchField(text: $query) { nav.open(.search(query: query.trimmingCharacters(in: .whitespacesAndNewlines))) }
                 .padding(.top, 24)
         }
@@ -132,7 +134,7 @@ private struct WayCard: View {
     }
 }
 
-/// One domain of «ماذا تحتاج الآن؟».
+/// One domain of «ماذا تحتاج الآن؟» — its number, title, «وصف المجال», and its needs' count.
 private struct DomainCard: View {
     @Environment(\.colorScheme) private var scheme
     let domain: SunanDomain
@@ -142,7 +144,13 @@ private struct DomainCard: View {
             Text("\(domain.id)").font(AppFont.sans(16)).foregroundStyle(t.gold)
                 .frame(width: 36, height: 36)
                 .overlay(Circle().stroke(t.line, lineWidth: 1))
-            Text(domain.title).font(AppFont.serif(24)).foregroundStyle(t.cream)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(domain.title).font(AppFont.serif(24)).foregroundStyle(t.cream)
+                if let d = domain.description, !d.isEmpty {
+                    Text(d).font(AppFont.sans(14)).foregroundStyle(t.muted).lineSpacing(6)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             Rectangle().fill(t.line).frame(height: 1)
             HStack {
                 Text(SunanText.count(domain.needIds.count, SunanText.needs))

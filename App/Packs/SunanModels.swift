@@ -36,6 +36,8 @@ struct SunanStats: Decodable {
 struct SunanDomain: Decodable, Identifiable, Hashable {
     let id: Int
     let title: String
+    /// «وصف المجال» — one line on what the domain covers (packs before 2026-11-24 have none).
+    let description: String?
     let needIds: [Int]
 }
 
