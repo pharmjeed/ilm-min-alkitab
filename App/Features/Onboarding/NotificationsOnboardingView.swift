@@ -1,49 +1,74 @@
 import SwiftUI
 import UserNotifications
 
-/// The only first-launch step (owner's journey): enable notifications. One button, no skip —
-/// the iPhone's own permission dialog lets the person decline; either answer continues to «الرئيسية».
+/// First launch only (owner 2026-11-24): a quiet page with the brand mark and «علم من الكتاب», and over it a
+/// pop-up asking to enable notifications. One button, no skip — the iPhone's own permission dialog lets the
+/// person decline; either answer continues to «الرئيسية».
 struct NotificationsOnboardingView: View {
+    var onDone: () -> Void
+    @Environment(\.colorScheme) private var scheme
+    @State private var showPopup = false
+
+    var body: some View {
+        let t = Theme(scheme)
+        ZStack {
+            t.bg.ignoresSafeArea()
+            VStack(spacing: 18) {
+                BrandMark(color: t.gold).frame(width: 120, height: 120)
+                Text("علم من الكتاب").font(AppFont.serif(34)).foregroundStyle(t.gold)
+            }
+            .offset(y: -20)
+
+            if showPopup {
+                Color.black.opacity(0.55).ignoresSafeArea().transition(.opacity)
+                NotificationsPopup(onDone: onDone)
+                    .padding(.horizontal, 16)
+                    .transition(.scale(scale: 0.92).combined(with: .opacity))
+            }
+        }
+        .task {
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.86)) { showPopup = true }
+        }
+    }
+}
+
+/// The pop-up card: title, one line, how the morning notification looks, and the button.
+private struct NotificationsPopup: View {
     var onDone: () -> Void
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         let t = Theme(scheme)
         VStack(spacing: 0) {
-            Spacer(minLength: 24)
-            VStack(spacing: 10) {
-                BrandMark(color: t.gold).frame(width: 84, height: 84)
-                Text("علم من الكتاب").font(AppFont.serif(22)).foregroundStyle(t.gold)
-                Text("فعّل الإشعارات").font(AppFont.serif(30)).foregroundStyle(t.cream).padding(.top, 14)
-                Text("يصلك كل صباح اسمٌ من أسماء الله، ومعناه، ومتى تدعوه به.")
-                    .font(AppFont.sans(17)).foregroundStyle(t.cream.opacity(0.82))
-                    .multilineTextAlignment(.center).lineSpacing(6)
-            }
-            .padding(.horizontal, 24)
-
+            Text("فعّل الإشعارات").font(AppFont.serif(28)).foregroundStyle(t.cream)
+            Text("يصلك كل صباح اسمٌ من أسماء الله، ومعناه، ومتى تدعوه به.")
+                .font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.82))
+                .multilineTextAlignment(.center).lineSpacing(5)
+                .padding(.top, 8)
             NotificationPreview(title: "اسم اليوم: الحليم الغفور",
                                 message: "السماءُ فوق رأسك لم تسقط بعد — ذلك حلمُه؛ وبابُ التوبة لم يُغلق بعد — تلك مغفرتُه.")
-                .padding(.horizontal, 16).padding(.top, 28)
-
-            Spacer()
-            VStack(spacing: 10) {
-                Button {
-                    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in
-                        DispatchQueue.main.async { onDone() }
-                    }
-                } label: {
-                    Text("فعّل الإشعارات").font(AppFont.sans(18, .bold))
-                        .frame(maxWidth: .infinity, minHeight: 54)
-                        .background(t.gold, in: RoundedRectangle(cornerRadius: 14))
-                        .foregroundStyle(Palette.night)
+                .padding(.top, 18)
+            Button {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in
+                    DispatchQueue.main.async { onDone() }
                 }
-                Text("إشعارٌ واحد في الصباح، ويمكنك تغيير وقته من «المزيد».")
-                    .font(AppFont.sans(13)).foregroundStyle(t.muted)
+            } label: {
+                Text("فعّل الإشعارات").font(AppFont.sans(18, .bold))
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .background(t.gold, in: RoundedRectangle(cornerRadius: 14))
+                    .foregroundStyle(Palette.night)
             }
-            .padding(.horizontal, 16).padding(.bottom, 24)
+            .padding(.top, 20)
+            Text("إشعارٌ واحد في الصباح، ويمكنك تغيير وقته من «المزيد».")
+                .font(AppFont.sans(13)).foregroundStyle(t.muted)
+                .multilineTextAlignment(.center)
+                .padding(.top, 10)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(t.bg.ignoresSafeArea())
+        .padding(.horizontal, 16).padding(.top, 24).padding(.bottom, 18)
+        .background(t.surface, in: RoundedRectangle(cornerRadius: 26))
+        .overlay(RoundedRectangle(cornerRadius: 26).stroke(t.line, lineWidth: 1))
+        .shadow(color: .black.opacity(0.35), radius: 24, y: 10)
     }
 }
 
