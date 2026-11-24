@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// The website's home page (app/page.tsx): hero → «ماذا تشعر الآن؟» → «اسأل عن موقفك» → «اسم اليوم».
+/// The website's home page (app/page.tsx): hero → «ماذا تشعر الآن؟» → «اسم اليوم» (the «اسأل عن موقفك» card was removed
+/// at the owner's request 2026-11-24; the hero button still opens «اسأل»).
 /// («تصفّح بالمصحف» is not part of the app.)
 struct NamesHomeView: View {
     @Environment(\.colorScheme) private var scheme
@@ -13,7 +14,6 @@ struct NamesHomeView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     HeroSection()
                     FeelEntry(heading: false).padding(.top, 24)
-                    AskEntry().padding(.top, 48)
                     if let nod = repo.nameOfDay() {
                         NameOfDaySection(card: nod).padding(.top, 48).id("nod")
                     }
@@ -228,38 +228,6 @@ private struct FeelCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(t.gold.opacity(0.35), lineWidth: 1))
         .contentShape(RoundedRectangle(cornerRadius: 16))
-    }
-}
-
-/// components/home/HomeSections.tsx AskEntry.
-private struct AskEntry: View {
-    @Environment(\.colorScheme) private var scheme
-    @EnvironmentObject private var nav: AppNav
-    @State private var q = ""
-
-    var body: some View {
-        let t = Theme(scheme)
-        VStack(alignment: .leading, spacing: 0) {
-            Text("اسأل عن موقفك").font(AppFont.serif(26)).foregroundStyle(t.cream)
-            Text("اكتب ما تمرّ به بلغتك، وستحصل على الأسماء التي يُستحضر بها هذا الموقف ويُدعى بها — من محتوى المنصة فقط، مع المراجع. ليست فتوى.")
-                .font(AppFont.sans(14)).foregroundStyle(t.muted).lineSpacing(4).padding(.top, 4)
-            VStack(spacing: 8) {
-                TextField("", text: $q, prompt: Text("مثال: أخاف من الفقر… بأي اسم أدعو؟").foregroundColor(t.muted))
-                    .font(AppFont.sans(16)).foregroundStyle(t.cream)
-                    .submitLabel(.send)
-                    .onSubmit { nav.open(.ask(question: String(q.prefix(600)))) }
-                    .padding(.horizontal, 16).frame(minHeight: 46)
-                    .background(t.bg.opacity(0.4), in: Capsule())
-                    .overlay(Capsule().stroke(t.line, lineWidth: 1))
-                Button { nav.open(.ask(question: String(q.prefix(600)))) } label: {
-                    Text("اسأل").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(PrimaryPill())
-            }
-            .padding(.top, 16)
-        }
-        .multilineTextAlignment(.leading)
-        .siteCard(t, padding: 20)
     }
 }
 
