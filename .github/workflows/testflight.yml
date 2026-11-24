@@ -28,14 +28,16 @@ jobs:
           mkdir -p "$RUNNER_TEMP/keys"
           printf '%s\n' "$P8" > "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8"
           echo "KEY_PATH=$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" >> "$GITHUB_ENV"
-      - name: Archive (Release, automatic signing)
+      # The team has no registered devices, so a development profile (which a signed archive needs) cannot be made.
+      # Archive UNSIGNED; the export step signs for the App Store with a cloud-managed distribution certificate.
+      - name: Archive (Release, unsigned)
         run: |
           xcodebuild -project IlmMinAlKitab.xcodeproj -scheme IlmMinAlKitab -configuration Release \
             -destination 'generic/platform=iOS' -archivePath build/Ilm.xcarchive \
             DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
-            -allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" \
-            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             archive > archive.log 2>&1 || { grep -E "error:|requires a provisioning|No Accounts|No profiles" archive.log | sort -u | head -60; tail -60 archive.log; exit 1; }
+          tail -5 archive.log
       - name: Export and upload to App Store Connect
         run: |
           sed "s/__TEAM__/$TEAM/" ci/ExportOptions.plist > build/ExportOptions.plist
