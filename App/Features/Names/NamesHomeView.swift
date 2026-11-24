@@ -6,15 +6,23 @@ import SwiftUI
 struct NamesHomeView: View {
     @Environment(\.colorScheme) private var scheme
     private let repo = NamesRepo.shared
-    /// «رحلة الحسنى» — shown on the first entry into the section, and from the hero link afterwards (owner 2026-11-24).
+    /// «رحلة الحسنى» — opened from «ما أهمية الأسماء الحسنى؟» at the top of the section (owner 2026-11-25).
     @State private var showIntro = false
+    @AppStorage(NamesIntro.seenKey) private var introSeen = false
 
     var body: some View {
         let t = Theme(scheme)
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    HeroSection { showIntro = true }
+                    IntroInvite(seen: introSeen || NamesIntro.ciSeen, lead: Journey.husna.lead) {
+                        introSeen = true
+                        showIntro = true
+                    } later: {
+                        withAnimation(.easeInOut(duration: 0.25)) { introSeen = true }
+                    }
+                    .padding(.bottom, 16)
+                    HeroSection()
                     FeelEntry(heading: false).padding(.top, 24)
                     if let nod = repo.nameOfDay() {
                         NameOfDaySection(card: nod).padding(.top, 48).id("nod")
@@ -31,13 +39,63 @@ struct NamesHomeView: View {
         }
         .namesScreen("كنز الأسماء الحسنى", t)
         .onAppear {
-            guard NamesIntro.due else { return }
-            NamesIntro.offeredThisLaunch = true
+            guard NamesIntro.ciFocus != nil, !NamesIntro.ciOpened else { return }
+            NamesIntro.ciOpened = true
             showIntro = true
         }
         .fullScreenCover(isPresented: $showIntro) {
-            JourneyIntroView(journey: .husna, startPage: NamesIntro.ciPage ?? 0)
+            JourneyIntroView(journey: .husna, focus: NamesIntro.ciFocus ?? 0)
                 .environment(\.layoutDirection, .rightToLeft)
+        }
+    }
+}
+
+/// «ما أهمية الأسماء الحسنى؟» (owner 2026-11-25): a clear card at the top of the section until the visitor starts the
+/// journey or chooses «ليس الآن»; then a small line in its place, for whoever wants to come back to it.
+private struct IntroInvite: View {
+    @Environment(\.colorScheme) private var scheme
+    let seen: Bool
+    let lead: String
+    let start: () -> Void
+    let later: () -> Void
+
+    var body: some View {
+        let t = Theme(scheme)
+        if seen {
+            Button(action: start) {
+                HStack(spacing: 6) {
+                    Image(systemName: "map")
+                    Text("ما أهمية الأسماء الحسنى؟ ←")
+                }
+                .font(AppFont.sans(15)).foregroundStyle(t.gold)
+                .padding(.horizontal, 14).frame(minHeight: 40)
+                .overlay(Capsule().stroke(t.gold.opacity(0.45), lineWidth: 1))
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                Image(systemName: "map").font(.system(size: 22)).foregroundStyle(t.gold)
+                Text("ما أهمية الأسماء الحسنى؟").font(AppFont.serif(24)).foregroundStyle(t.cream)
+                    .padding(.top, 10)
+                Text(lead).font(AppFont.sans(15)).foregroundStyle(t.muted).lineSpacing(6)
+                    .padding(.top, 6)
+                Button(action: start) { Text("ابدأ الرحلة · دقيقتان ←").frame(maxWidth: .infinity) }
+                    .buttonStyle(PrimaryPill())
+                    .padding(.top, 16)
+                Button(action: later) {
+                    Text("ليس الآن").font(AppFont.sans(15)).foregroundStyle(t.gold)
+                        .frame(maxWidth: .infinity, minHeight: 40)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
+            }
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .background(t.surface, in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(t.gold, lineWidth: 1.5))
         }
     }
 }
@@ -47,7 +105,6 @@ private struct HeroSection: View {
     @Environment(\.colorScheme) private var scheme
     @EnvironmentObject private var nav: AppNav
     @State private var query = ""
-    let openIntro: () -> Void
 
     var body: some View {
         let t = Theme(scheme)
@@ -76,16 +133,6 @@ private struct HeroSection: View {
                 NavigationLink(value: HomeDestination.n(.ask())) { Text("اسأل عن موقفك") }.buttonStyle(SecondaryPill())
             }
             .padding(.top, 24)
-            Button(action: openIntro) {
-                HStack(spacing: 6) {
-                    Image(systemName: "map")
-                    Text("فكرة القسم: رحلة الحسنى ←")
-                }
-                .font(AppFont.sans(15)).foregroundStyle(t.gold)
-                .frame(minHeight: 40)
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 14)
         }
         .padding(.horizontal, 20).padding(.vertical, 44)
         .frame(maxWidth: .infinity)

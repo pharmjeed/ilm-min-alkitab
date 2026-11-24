@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// «رحلة الحسنى» — the owner's map (2026-11-24) as the introduction to «كنز الأسماء الحسنى»: whoever enters the section
-/// sees it once (the road → five stations → the end of the road), and can open it again from the section home.
+/// «رحلة الحسنى» — the owner's map (2026-11-24) as the introduction to «كنز الأسماء الحسنى». Owner 2026-11-25: it is never
+/// forced — the section home invites to it («ما أهمية الأسماء الحسنى؟»), and the whole road is one page: each station
+/// opens on a tap (its verses in full, «ماذا تعمل؟» and «كيف تستفيد؟»), then the end of the road and «ادخل القسم».
 /// The texts and verses are generated from the owner's file (HusnaJourneyData.swift); the verses match quran.json.
 struct Journey {
     let title: String
@@ -40,228 +41,157 @@ struct JourneyVerse: Identifiable {
 }
 
 enum NamesIntro {
+    /// Set once the visitor started the journey or chose «ليس الآن»: the invitation card becomes a small line.
     static let seenKey = "namesIntroSeen"
-    /// Once per launch at most (the section home appears again when its pages are popped).
-    static var offeredThisLaunch = false
-    /// CI: `-route namesintro` (the road), `namesintro1`…`namesintro5` (a station), `namesintro6` (the end).
-    static var ciPage: Int? {
+    /// CI: `-route namesintro` (the road), `namesintro1`…`namesintro5` (a station opened), `namesintro6` (the end).
+    static var ciFocus: Int? {
         let a = Route.arg
         guard Route.isCI, a.hasPrefix("namesintro") else { return nil }
-        return Int(a.dropFirst("namesintro".count)) ?? 0
+        let rest = a.dropFirst("namesintro".count)
+        return rest.isEmpty ? 0 : Int(rest)
     }
-    /// The first entry into the section (never in other CI screenshots).
-    static var due: Bool {
-        if offeredThisLaunch { return false }
-        if Route.isCI { return ciPage != nil }
-        return !UserDefaults.standard.bool(forKey: seenKey)
-    }
+    /// CI: `-route namesintroseen` — the section home after the invitation.
+    static var ciSeen: Bool { Route.isCI && Route.arg == "namesintroseen" }
+    /// The CI journey opens once (the section home appears again when it closes).
+    static var ciOpened = false
 }
 
-/// The introduction, page by page: swipe or use «التالي» / «السابق»; «تخطَّ» or «ادخل القسم» closes it for good.
+/// The road on one page: the stations one under the other, each opening on a tap; then the end of the road.
 struct JourneyIntroView: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.dismiss) private var dismiss
     let journey: Journey
-    @State private var page: Int?
+    /// CI only: a station to open (1…5) or the end of the road (stations + 1).
+    let focus: Int
+    @State private var open: Int?
 
-    init(journey: Journey, startPage: Int = 0) {
+    init(journey: Journey, focus: Int = 0) {
         self.journey = journey
-        _page = State(initialValue: startPage)
+        self.focus = focus
+        _open = State(initialValue: (1...max(1, journey.stations.count)).contains(focus) ? focus : nil)
     }
-
-    private var pages: Int { journey.stations.count + 2 }
 
     var body: some View {
         let t = Theme(scheme)
-        let current = page ?? 0
         VStack(spacing: 0) {
             HStack {
-                HStack(spacing: 6) {
-                    ForEach(0..<pages, id: \.self) { i in
-                        Capsule().fill(i == current ? t.gold : t.line)
-                            .frame(width: i == current ? 18 : 6, height: 6)
-                    }
-                }
-                .animation(.easeOut(duration: 0.2), value: current)
-                Spacer()
-                Button("تخطَّ") { finish() }
-                    .font(AppFont.sans(15)).foregroundStyle(t.muted)
+                Button { dismiss() } label: { Text("→ رجوع") }
+                    .font(AppFont.sans(15)).foregroundStyle(t.gold)
                     .frame(minHeight: 40)
+                Spacer()
             }
             .padding(.horizontal, 20).padding(.top, 8)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 0) {
-                    ForEach(0..<pages, id: \.self) { i in
-                        pageView(i, t)
-                            .containerRelativeFrame(.horizontal)
-                            .id(i)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        header(t)
+                        stations(t).padding(.top, 24)
+                        end(t).padding(.top, 24).id("end")
+                        Button { dismiss() } label: { Text("ادخل القسم ←").frame(maxWidth: .infinity) }
+                            .buttonStyle(PrimaryPill())
+                            .padding(.top, 20)
                     }
+                    .padding(16).padding(.bottom, 16)
                 }
-                .scrollTargetLayout()
-            }
-            .scrollTargetBehavior(.paging)
-            .scrollPosition(id: $page)
-
-            HStack(spacing: 12) {
-                if current > 0 {
-                    Button { go(current - 1) } label: { Text("→ السابق") }.buttonStyle(SecondaryPill(compact: true))
-                }
-                Spacer()
-                if current < pages - 1 {
-                    Button { go(current + 1) } label: { Text(current == 0 ? "ابدأ الرحلة ←" : "التالي ←") }
-                        .buttonStyle(PrimaryPill(compact: true))
-                } else {
-                    Button { finish() } label: { Text("ادخل القسم ←") }.buttonStyle(PrimaryPill(compact: true))
+                .task {
+                    guard focus > 0 else { return }
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    proxy.scrollTo(focus > journey.stations.count ? "end" : "s\(focus)", anchor: .top)
                 }
             }
-            .padding(.horizontal, 20).padding(.vertical, 12)
         }
         .background(t.bg.ignoresSafeArea())
     }
 
-    @ViewBuilder
-    private func pageView(_ i: Int, _ t: Theme) -> some View {
-        ScrollView {
-            Group {
-                if i == 0 {
-                    road(t)
-                } else if i <= journey.stations.count {
-                    station(journey.stations[i - 1], t)
-                } else {
-                    end(t)
-                }
-            }
-            .padding(16).padding(.bottom, 8)
-        }
-    }
+    // MARK: - The title of the road
 
-    private func go(_ i: Int) {
-        withAnimation(.easeInOut(duration: 0.3)) { page = i }
-    }
-
-    private func finish() {
-        UserDefaults.standard.set(true, forKey: NamesIntro.seenKey)
-        dismiss()
-    }
-
-    // MARK: - The road (the map at a glance)
-
-    private func road(_ t: Theme) -> some View {
+    private func header(_ t: Theme) -> some View {
         VStack(spacing: 0) {
-            BrandMark(color: t.gold).frame(width: 56, height: 56)
-            Text(journey.title).font(AppFont.serif(36)).foregroundStyle(t.cream).padding(.top, 16)
-            Text(journey.lead)
-                .font(AppFont.sans(17)).foregroundStyle(t.muted).lineSpacing(7)
-                .padding(.top, 10)
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(journey.stations) { s in
-                    stop(t, line: true, dashedLine: journey.stations.last?.id == s.id || nextIsSide(s)) {
-                        Text("\(s.n)").font(AppFont.sans(17, .bold))
-                            .foregroundStyle(s.side ? t.gold : t.bg)
-                            .frame(width: 42, height: 42)
-                            .background(s.side ? Color.clear : t.gold, in: Circle())
-                            .overlay(Circle().stroke(t.gold, style: StrokeStyle(lineWidth: 1.5, dash: s.side ? [4, 3] : [])))
-                    } label: {
-                        HStack(spacing: 8) {
-                            Text(s.verb).font(AppFont.serif(22)).foregroundStyle(t.cream)
-                            if s.side {
-                                Text("طريق جانبي").font(AppFont.sans(12)).foregroundStyle(t.gold)
-                                    .padding(.horizontal, 8).padding(.vertical, 2)
-                                    .overlay(Capsule().stroke(t.gold.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
-                            }
-                        }
-                        Text(s.name).font(AppFont.sans(14)).foregroundStyle(t.muted)
-                    }
-                }
-                stop(t, line: false, dashedLine: false) {
-                    BrandMark(color: Palette.night, lineWidth: 4)
-                        .frame(width: 26, height: 26)
-                        .frame(width: 42, height: 42)
-                        .background(Color(hex: 0xD4A449), in: Circle())
-                } label: {
-                    Text(journey.endTitle).font(AppFont.serif(22)).foregroundStyle(t.gold)
-                    Text(journey.endKicker).font(AppFont.sans(14)).foregroundStyle(t.muted)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 28)
+            BrandMark(color: t.gold).frame(width: 48, height: 48)
+            Text(journey.title).font(AppFont.serif(34)).foregroundStyle(t.cream).padding(.top, 14)
+            Text(journey.lead).font(AppFont.sans(16)).foregroundStyle(t.muted).lineSpacing(7).padding(.top, 8)
+            Text("المس أي محطة لتنفتح").font(AppFont.sans(13)).foregroundStyle(t.gold).padding(.top, 10)
         }
         .multilineTextAlignment(.center)
-        .padding(.horizontal, 8).padding(.top, 12)
+        .frame(maxWidth: .infinity)
     }
 
-    private func nextIsSide(_ s: JourneyStation) -> Bool {
-        journey.stations.first { $0.n == s.n + 1 }?.side ?? false
-    }
+    // MARK: - The stations
 
-    private func stop<Mark: View, Label: View>(_ t: Theme, line: Bool, dashedLine: Bool,
-                                               @ViewBuilder mark: () -> Mark,
-                                               @ViewBuilder label: () -> Label) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            VStack(spacing: 0) {
-                mark()
-                if line {
-                    Path { p in
-                        p.move(to: CGPoint(x: 1, y: 0))
-                        p.addLine(to: CGPoint(x: 1, y: 26))
-                    }
-                    .stroke(t.gold.opacity(0.6), style: StrokeStyle(lineWidth: 2, dash: dashedLine ? [4, 4] : []))
-                    .frame(width: 2, height: 26)
-                }
+    private func stations(_ t: Theme) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(journey.stations) { s in
+                station(s, t).id("s\(s.n)")
             }
-            VStack(alignment: .leading, spacing: 2) { label() }
-                .multilineTextAlignment(.leading)
-                .padding(.top, 4)
+        }
+        // the road: a line through the stations' numbers, seen between the cards
+        .background(alignment: .leading) {
+            Rectangle().fill(t.gold.opacity(0.45)).frame(width: 2)
+                .padding(.vertical, 30)
+                .padding(.leading, 32)
         }
     }
-
-    // MARK: - A station
 
     private func station(_ s: JourneyStation, _ t: Theme) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                Text(s.verb).font(AppFont.sans(15, .bold))
-                    .foregroundStyle(s.side ? t.gold : t.bg)
-                    .padding(.horizontal, 14).padding(.vertical, 4)
-                    .background(s.side ? Color.clear : t.gold, in: Capsule())
-                    .overlay(Capsule().stroke(t.gold, style: StrokeStyle(lineWidth: 1.5, dash: s.side ? [4, 3] : [])))
-                Text("\(s.n) · \(s.name)").font(AppFont.sans(14)).foregroundStyle(t.gold)
-                Spacer(minLength: 8)
-                Text(s.count).font(AppFont.sans(13)).foregroundStyle(t.muted)
-            }
-            Text(s.title).font(AppFont.serif(30)).foregroundStyle(t.cream).lineSpacing(4)
-                .padding(.top, 16)
-            Text(s.text).font(AppFont.sans(17)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(8)
-                .padding(.top, 10)
-
-            Rectangle().fill(t.line).frame(height: 1).padding(.top, 18)
-            VStack(alignment: .leading, spacing: 20) {
-                ForEach(s.verses) { v in
-                    VStack(alignment: .leading, spacing: 6) {
-                        if let l = v.label {
-                            Text(l).font(AppFont.sans(14, .bold)).foregroundStyle(t.gold)
-                        }
-                        Text("﴿\(v.text)﴾").font(AppFont.amiri(21)).foregroundStyle(t.cream).lineSpacing(10)
-                        Text("[\(v.ref)]" + (v.note.map { " · \($0)" } ?? ""))
-                            .font(AppFont.sans(13)).foregroundStyle(t.gold)
+        let on = open == s.n
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) { open = on ? nil : s.n }
+            } label: {
+                HStack(alignment: .center, spacing: 12) {
+                    Text("\(s.n)").font(AppFont.sans(16, .bold))
+                        .foregroundStyle(s.side ? t.gold : t.bg)
+                        .frame(width: 38, height: 38)
+                        .background(s.side ? Color.clear : t.gold, in: Circle())
+                        .overlay(Circle().stroke(t.gold, style: StrokeStyle(lineWidth: 1.5, dash: s.side ? [4, 3] : [])))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\(s.verb) · \(s.name)").font(AppFont.sans(13, .medium)).foregroundStyle(t.gold)
+                        Text(s.title).font(AppFont.serif(20)).foregroundStyle(t.cream).lineSpacing(3)
+                        Text(s.count).font(AppFont.sans(12.5)).foregroundStyle(t.muted)
                     }
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.down").font(.system(size: 13, weight: .semibold)).foregroundStyle(t.gold)
+                        .rotationEffect(.degrees(on ? 180 : 0))
                 }
+                .contentShape(Rectangle())
             }
-            .padding(.top, 18)
+            .buttonStyle(.plain)
 
-            VStack(spacing: 10) {
-                box("ماذا تعمل؟", s.doIt, t)
-                box("كيف تستفيد؟", s.gain, t)
+            if on {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(s.text).font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(7)
+                        .padding(.top, 14)
+                    Rectangle().fill(t.line).frame(height: 1).padding(.top, 14)
+                    VStack(alignment: .leading, spacing: 18) {
+                        ForEach(s.verses) { v in
+                            VStack(alignment: .leading, spacing: 6) {
+                                if let l = v.label {
+                                    Text(l).font(AppFont.sans(14, .bold)).foregroundStyle(t.gold)
+                                }
+                                Text("﴿\(v.text)﴾").font(AppFont.amiri(20)).foregroundStyle(t.cream).lineSpacing(10)
+                                Text("[\(v.ref)]" + (v.note.map { " · \($0)" } ?? ""))
+                                    .font(AppFont.sans(13)).foregroundStyle(t.gold)
+                            }
+                        }
+                    }
+                    .padding(.top, 14)
+                    VStack(spacing: 8) {
+                        box("ماذا تعمل؟", s.doIt, t)
+                        box("كيف تستفيد؟", s.gain, t)
+                    }
+                    .padding(.top, 18)
+                }
+                .transition(.opacity)
             }
-            .padding(.top, 22)
         }
         .multilineTextAlignment(.leading)
-        .padding(20)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(t.surface, in: RoundedRectangle(cornerRadius: 20))
-        .overlay(RoundedRectangle(cornerRadius: 20)
-            .stroke(t.gold.opacity(s.side ? 0.7 : 0.3), style: StrokeStyle(lineWidth: s.side ? 1.5 : 1, dash: s.side ? [6, 5] : [])))
+        .background(t.surface, in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18)
+            .stroke(on ? t.gold : t.gold.opacity(s.side ? 0.7 : 0.25),
+                    style: StrokeStyle(lineWidth: on || s.side ? 1.5 : 1, dash: s.side ? [6, 5] : [])))
     }
 
     private func box(_ label: String, _ value: String, _ t: Theme) -> some View {
@@ -269,8 +199,8 @@ struct JourneyIntroView: View {
             + Text(value).font(AppFont.sans(16)).foregroundColor(t.cream))
             .lineSpacing(6)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16).padding(.vertical, 12)
-            .background(t.gold.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(t.gold.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - The end of the road

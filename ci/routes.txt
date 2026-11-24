@@ -7,6 +7,8 @@
 03d-names-intro-5|-onboarded YES -route namesintro5|5
 03e-names-intro-end|-onboarded YES -route namesintro6|5
 03f-names-intro-light|-onboarded YES -route namesintro2 -appearance light|5
+03g-names-after|-onboarded YES -route namesintroseen
+03h-names-light|-onboarded YES -route names -appearance light
 04-sunan|-onboarded YES -route sunan
 05-saved|-onboarded YES -route saved
 06-more|-onboarded YES -route more
