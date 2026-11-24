@@ -54,7 +54,7 @@ Screens map 1:1 to the site's routes and reuse its wording and order:
 `/sunan` (`SunanHomeView`: header + search, «برنامج اليوم والليلة», «ماذا يجلب هذا العمل؟», 12 domains, «وفي الأصول»)
 → `/sunan/<domain>` (ما تعمله · ما تتجنّبه) → `/sunan/<domain>/<need>` (states) → `/sunan/<domain>/<need>/<state>`
 (representatives, «ابدأ بهذه» first) → `/sunan/item/<fp>` (easy line, طريقة التطبيق, full text with cause/result runs,
-folds, بمعناها, مداخل أخرى) · `/sunan/search` · `/sunan/macro` · `/sunan/pairs` · `/sunan/method` · `/sunan/day[/<time>]`
+folds, بمعناها, مداخل أخرى) · `/sunan/search` · `/sunan/macro` · `/sunan/pairs` · `/sunan/method` · `/sunan/day` (3 main categories) → category (its times, app only) → `/sunan/day/<time>`
 · `/sunan/deeds[/<deed>]`. Routes: `SunanRoute` (`HomeDestination.s`). Data: `SunanRepo` (index, lookups, state search)
 and the `SunanStore` actor (chunks, item by fp — state hint, then «ابدأ بهذه», then a lazily built fp → chunk map —,
 day.json, deeds.json), all decoded off the main thread and cached.

@@ -19,8 +19,10 @@ enum SunanRoute: Hashable {
     case pairs
     /// /sunan/method
     case method
-    /// /sunan/day
+    /// /sunan/day — the three main categories only (owner 2026-11-24: category → sub-category → sunan)
     case day
+    /// One main category («أولاً: اليوم والليلة») and its sub-categories (by period id) — app only
+    case dayPeriod(Int)
     /// /sunan/day/<slug> (by time id)
     case dayTime(Int)
     /// /sunan/deeds
@@ -42,6 +44,7 @@ struct SunanRouteView: View {
         case .pairs: SunanPairsView()
         case .method: SunanMethodView()
         case .day: SunanDayView()
+        case .dayPeriod(let id): SunanDayPeriodView(periodId: id)
         case .dayTime(let id): SunanDayTimeView(timeId: id)
         case .deeds: SunanDeedsView()
         case .deed(let id): SunanDeedView(deedId: id)

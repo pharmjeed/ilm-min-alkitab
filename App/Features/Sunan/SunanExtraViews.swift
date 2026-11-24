@@ -1,8 +1,9 @@
 import SwiftUI
 
-// «برنامج اليوم والليلة» (/sunan/day, /sunan/day/<time>) and «ماذا يجلب هذا العمل؟» (/sunan/deeds, /sunan/deeds/<deed>).
+// «برنامج اليوم والليلة» (/sunan/day → main category → /sunan/day/<time>) and «ماذا يجلب هذا العمل؟» (/sunan/deeds, /sunan/deeds/<deed>).
 
-/// /sunan/day — app/sunan/day/page.tsx: periods → times (with counts) → the programme's «ابدأ بهذه» items.
+/// /sunan/day — the three main categories only; their sub-categories and sunan open on the next pages
+/// (owner 2026-11-24: «لا تسرد السنن في هذه الصفحة … تصنيف أساسي، تصنيف فرعي، ثم السنن»).
 struct SunanDayView: View {
     @Environment(\.colorScheme) private var scheme
     var body: some View {
@@ -14,89 +15,68 @@ struct SunanDayView: View {
     }
 }
 
+private extension SunanDayPeriod {
+    var itemsCount: Int { times.reduce(0) { $0 + $1.items.count } }
+    /// «15 تصنيفًا · 452 سنّة»
+    var countLine: String {
+        "\(SunanText.count(times.count, SunanText.categories)) · \(SunanText.count(itemsCount, SunanText.sunan))"
+    }
+}
+
 private struct SunanDayContent: View {
     @Environment(\.colorScheme) private var scheme
     let day: SunanDayFile
 
     var body: some View {
         let t = Theme(scheme)
-        let total = day.periods.reduce(0) { a, p in a + p.times.reduce(0) { $0 + $1.items.count } }
-        let firstStarTime = day.periods.flatMap(\.times).first { $0.items.contains { $0.star == true } }?.id
-        ScrollViewReader { proxy in
-            ScrollView {
+        let total = day.periods.reduce(0) { $0 + $1.itemsCount }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                CrumbsView(trail: [.sunanHome], current: SunanText.dayTitle)
                 VStack(alignment: .leading, spacing: 0) {
-                    CrumbsView(trail: [.sunanHome], current: SunanText.dayTitle)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(SunanText.dayTitle).font(AppFont.serif(30)).foregroundStyle(t.cream).lineSpacing(4)
-                        Text(SunanText.dayLead).font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(8)
-                            .padding(.top, 12)
-                        dayLegend(t, prefix: "\(SunanText.count(total, SunanText.sunan)) — ", size: 14).padding(.top, 8)
-                        FlowLayout(spacing: 8, lineSpacing: 8) {
-                            ForEach(day.periods) { p in
-                                Button { withAnimation { proxy.scrollTo("period-\(p.id)", anchor: .top) } } label: {
-                                    Text(p.title).font(AppFont.sans(14)).foregroundStyle(t.gold)
-                                        .padding(.horizontal, 12).frame(minHeight: 40)
-                                        .overlay(Capsule().stroke(t.gold.opacity(0.45), lineWidth: 1))
-                                        .contentShape(Capsule())
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.top, 16)
-                    }
-                    .multilineTextAlignment(.leading)
-                    .sunanHeader(t, gold: true)
+                    Text(SunanText.dayTitle).font(AppFont.serif(30)).foregroundStyle(t.cream).lineSpacing(4)
+                    Text(SunanText.dayLead).font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(8)
+                        .padding(.top, 12)
+                    dayLegend(t, prefix: "\(SunanText.count(total, SunanText.sunan)) — ", size: 14).padding(.top, 8)
+                }
+                .multilineTextAlignment(.leading)
+                .sunanHeader(t, gold: true)
 
+                SunanHeading(text: "اختر ما يناسبك", size: 24).padding(.top, 32)
+                VStack(spacing: 12) {
                     ForEach(day.periods) { p in
-                        VStack(alignment: .leading, spacing: 0) {
-                            SunanHeading(text: p.title, size: 24)
-                            VStack(spacing: 8) {
-                                ForEach(p.times) { tm in
-                                    SunanLink(.dayTime(tm.id)) {
-                                        HStack(spacing: 12) {
-                                            Text(tm.title).font(AppFont.serif(18)).foregroundStyle(t.cream)
-                                                .multilineTextAlignment(.leading)
-                                            Spacer(minLength: 4)
-                                            Text("\(SunanText.count(tm.items.count, SunanText.sunan)) ←").font(AppFont.sans(12)).foregroundStyle(t.gold).fixedSize()
-                                        }
-                                        .sunanRow(t)
-                                    }
-                                }
-                            }
-                            .padding(.top, 16)
-
-                            ForEach(p.times.filter { $0.items.contains { $0.star == true } }) { tm in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(tm.title).font(AppFont.serif(21)).foregroundStyle(t.gold)
-                                        SunanLink(.dayTime(tm.id)) {
-                                            Text("كل سنن «\(tm.title)» (\(SunanText.count(tm.items.count, SunanText.sunan))) ←")
-                                                .font(AppFont.sans(14)).foregroundStyle(t.gold)
-                                                .multilineTextAlignment(.leading)
-                                        }
-                                    }
-                                    LazyVStack(spacing: 12) {
-                                        ForEach(Array(tm.items.filter { $0.star == true }.enumerated()), id: \.offset) { _, it in
-                                            SunanDayCardView(item: it)
-                                        }
-                                    }
-                                }
-                                .padding(.top, 24)
-                                .id(tm.id == firstStarTime ? "stars" : "time-\(tm.id)")
-                            }
-                        }
-                        .padding(.top, 40)
-                        .id("period-\(p.id)")
+                        SunanLink(.dayPeriod(p.id)) { DayPeriodCard(period: p) }
                     }
                 }
-                .padding(16).padding(.bottom, 24)
+                .padding(.top, 16)
             }
-            .task {
-                guard let anchor = Route.consumeSunanScroll(["stars"]) else { return }
-                try? await Task.sleep(nanoseconds: 700_000_000)
-                proxy.scrollTo(anchor, anchor: .top)
-            }
+            .padding(16).padding(.bottom, 24)
         }
+    }
+}
+
+/// One main category: its ordinal, name, the first sub-categories, and the counts.
+private struct DayPeriodCard: View {
+    @Environment(\.colorScheme) private var scheme
+    let period: SunanDayPeriod
+    var body: some View {
+        let t = Theme(scheme)
+        let parts = SunanText.periodParts(period.title)
+        let names = period.times.prefix(4).map(\.title).joined(separator: " · ") + (period.times.count > 4 ? " …" : "")
+        VStack(alignment: .leading, spacing: 8) {
+            if let o = parts.ordinal { Text(o).font(AppFont.sans(14)).foregroundStyle(t.gold) }
+            Text(parts.name).font(AppFont.serif(26)).foregroundStyle(t.cream)
+            Text(names).font(AppFont.sans(14)).foregroundStyle(t.muted).lineSpacing(6).lineLimit(2)
+            Rectangle().fill(t.line).frame(height: 1).padding(.top, 4)
+            HStack {
+                Text(period.countLine)
+                Spacer(minLength: 8)
+                Text("افتح ←")
+            }
+            .font(AppFont.sans(14)).foregroundStyle(t.gold)
+        }
+        .multilineTextAlignment(.leading)
+        .sunanRow(t, border: t.gold.opacity(0.45), h: 20, v: 20, radius: 16)
     }
 }
 
@@ -111,7 +91,81 @@ private func dayLegend(_ t: Theme, prefix: String = "", size: CGFloat) -> some V
         .frame(maxWidth: .infinity, alignment: .leading)
 }
 
-/// /sunan/day/<time> — app/sunan/day/[time]/page.tsx: every item of a time, then previous · programme · next.
+/// A main category of the programme: its sub-categories (times / situations) with their counts — no sunan here.
+struct SunanDayPeriodView: View {
+    @Environment(\.colorScheme) private var scheme
+    let periodId: Int
+    var body: some View {
+        let t = Theme(scheme)
+        SunanLoader(key: "day", load: { try await SunanStore.shared.day() }) { day in
+            SunanDayPeriodContent(day: day, periodId: periodId)
+        }
+        .sunanScreen(SunanText.dayTitle, t)
+    }
+}
+
+private struct SunanDayPeriodContent: View {
+    @Environment(\.colorScheme) private var scheme
+    @EnvironmentObject private var nav: AppNav
+    let day: SunanDayFile
+    let periodId: Int
+
+    var body: some View {
+        let t = Theme(scheme)
+        let k = day.periods.firstIndex { $0.id == periodId }
+        ScrollView {
+            if let k {
+                let period = day.periods[k]
+                let parts = SunanText.periodParts(period.title)
+                let prev = k > 0 ? day.periods[k - 1] : nil
+                let next = k + 1 < day.periods.count ? day.periods[k + 1] : nil
+                VStack(alignment: .leading, spacing: 0) {
+                    CrumbsView(trail: [.sunanHome, Crumb(SunanText.dayTitle, .day)], current: parts.name)
+                        .padding(.bottom, 16)
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let o = parts.ordinal { Text(o).font(AppFont.sans(14)).foregroundStyle(t.gold) }
+                        Text(parts.name).font(AppFont.serif(30)).foregroundStyle(t.cream).lineSpacing(4)
+                        Text("\(period.countLine) — اختر ما يناسب وقتك أو موقفك:")
+                            .font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(6)
+                            .padding(.top, 8)
+                    }
+                    .multilineTextAlignment(.leading)
+                    .sunanHeader(t, gold: true)
+
+                    VStack(spacing: 8) {
+                        ForEach(period.times) { tm in
+                            SunanLink(.dayTime(tm.id)) {
+                                HStack(spacing: 12) {
+                                    Text(tm.title).font(AppFont.serif(18)).foregroundStyle(t.cream)
+                                        .multilineTextAlignment(.leading)
+                                    Spacer(minLength: 4)
+                                    Text("\(SunanText.count(tm.items.count, SunanText.sunan)) ←").font(AppFont.sans(12)).foregroundStyle(t.gold).fixedSize()
+                                }
+                                .sunanRow(t)
+                            }
+                        }
+                    }
+                    .padding(.top, 16)
+
+                    FlowLayout(spacing: 8, lineSpacing: 8) {
+                        if let prev {
+                            SunanBackLink(text: "→ \(SunanText.periodParts(prev.title).name)") { nav.replaceLast(.dayPeriod(prev.id)) }
+                        }
+                        SunanBackLink(text: SunanText.dayTitle) { nav.open(.day) }
+                        if let next {
+                            SunanBackLink(text: "\(SunanText.periodParts(next.title).name) ←") { nav.replaceLast(.dayPeriod(next.id)) }
+                        }
+                    }
+                    .padding(.top, 32)
+                }
+                .padding(16).padding(.bottom, 24)
+            }
+        }
+    }
+}
+
+/// /sunan/day/<time> — app/sunan/day/[time]/page.tsx: every item of a time, then previous · its category · next
+/// (siblings within the same main category).
 struct SunanDayTimeView: View {
     @Environment(\.colorScheme) private var scheme
     let timeId: Int
@@ -132,16 +186,16 @@ private struct SunanDayTimeContent: View {
 
     var body: some View {
         let t = Theme(scheme)
-        let times = day.periods.flatMap(\.times)
-        let k = times.firstIndex { $0.id == timeId }
         let period = day.periods.first { p in p.times.contains { $0.id == timeId } }
         ScrollView {
-            if let k, let period {
+            if let period, let k = period.times.firstIndex(where: { $0.id == timeId }) {
+                let times = period.times
                 let time = times[k]
                 let prev = k > 0 ? times[k - 1] : nil
                 let next = k + 1 < times.count ? times[k + 1] : nil
+                let periodName = SunanText.periodParts(period.title).name
                 VStack(alignment: .leading, spacing: 0) {
-                    CrumbsView(trail: [.sunanHome, Crumb(SunanText.dayTitle, .day)], current: time.title)
+                    CrumbsView(trail: [.sunanHome, Crumb(SunanText.dayTitle, .day), Crumb(periodName, .dayPeriod(period.id))], current: time.title)
                         .padding(.bottom, 16)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(period.title).font(AppFont.sans(14)).foregroundStyle(t.gold)
@@ -165,7 +219,7 @@ private struct SunanDayTimeContent: View {
                         if let prev {
                             SunanBackLink(text: "→ \(prev.title)") { nav.replaceLast(.dayTime(prev.id)) }
                         }
-                        SunanBackLink(text: SunanText.dayTitle) { nav.open(.day) }
+                        SunanBackLink(text: periodName) { nav.open(.dayPeriod(period.id)) }
                         if let next {
                             SunanBackLink(text: "\(next.title) ←") { nav.replaceLast(.dayTime(next.id)) }
                         }

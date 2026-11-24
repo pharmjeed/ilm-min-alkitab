@@ -20,6 +20,16 @@ enum SunanText {
     static let consequences = Arabic.CountForms(one: "عاقبة واحدة", two: "عاقبتان", few: "عواقب", many: "عاقبة")
     static let deeds = Arabic.CountForms(one: "عمل واحد", two: "عملان", few: "أعمال", many: "عملًا")
     static let narrations = Arabic.CountForms(one: "رواية واحدة", two: "روايتان", few: "روايات", many: "رواية")
+    static let categories = Arabic.CountForms(one: "تصنيف واحد", two: "تصنيفان", few: "تصنيفات", many: "تصنيفًا")
+
+    /// «أولاً: اليوم والليلة» → («أولاً», «اليوم والليلة»); a title without «:» stays whole.
+    static func periodParts(_ title: String) -> (ordinal: String?, name: String) {
+        guard let r = title.firstIndex(where: { $0 == ":" || $0 == "：" }) else { return (nil, title) }
+        let o = title[..<r].trimmingCharacters(in: .whitespaces)
+        let n = title[title.index(after: r)...].trimmingCharacters(in: .whitespaces)
+        if o.isEmpty || n.isEmpty { return (nil, title) }
+        return (o, n)
+    }
 
     static func count(_ n: Int, _ f: Arabic.CountForms) -> String { Arabic.count(n, f) }
 

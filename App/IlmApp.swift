@@ -134,7 +134,7 @@ final class AppNav: ObservableObject {
     func leave(_ s: PackSection) {
         if let i = homePath.firstIndex(where: { $0.section == s }) { homePath.removeSubrange(i...) }
     }
-    /// Sibling pages (the previous / next time of «برنامج اليوم والليلة») replace the current page.
+    /// Sibling pages (the previous / next category or time of «برنامج اليوم والليلة») replace the current page.
     func replaceLast(_ route: SunanRoute) {
         if !homePath.isEmpty { homePath.removeLast() }
         homePath.append(.s(route))
@@ -184,8 +184,9 @@ enum Route {
         case "sitemq", "sitemqtext":
             return [.sunan, .s(.domain(1)), .s(.need(1)), .s(.state(3)), .s(.item(fp: "b864df3937b5"))]
         case "sitemfp": return [.sunan, .s(.item(fp: "1c481e4cc3c2"))]
-        case "sday", "sdaystars": return [.sunan, .s(.day)]
-        case "sdaytime": return [.sunan, .s(.day), .s(.dayTime(1))]
+        case "sday": return [.sunan, .s(.day)]
+        case "sdayperiod": return [.sunan, .s(.day), .s(.dayPeriod(1))]
+        case "sdaytime": return [.sunan, .s(.day), .s(.dayPeriod(1)), .s(.dayTime(2))]
         case "sdeeds": return [.sunan, .s(.deeds)]
         case "sdeed": return [.sunan, .s(.deeds), .s(.deed(1))]
         case "smacro": return [.sunan, .s(.macro)]
@@ -197,13 +198,12 @@ enum Route {
     }
 
     /// `sitemtext` / `sitemqtext`: the item page scrolled to the end of its full text, folds open; `sitemmore`: to «بمعناها»;
-    /// `sunandomains`: the section home at «ماذا تحتاج الآن؟»; `sdaystars`: the day programme at its first «ابدأ بهذه» block.
+    /// `sunandomains`: the section home at «ماذا تحتاج الآن؟».
     private static var sunanScrollPending: String? = {
         switch arg {
         case "sitemtext", "sitemqtext": return "legend"
         case "sitemmore": return "more"
         case "sunandomains": return "domains"
-        case "sdaystars": return "stars"
         default: return nil
         }
     }()
