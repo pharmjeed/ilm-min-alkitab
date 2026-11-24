@@ -15,7 +15,7 @@ jobs:
       - name: Tools
         run: |
           brew install xcodegen
-          xcodebuild -version
+          bash ci/select-xcode.sh
       - name: Generate project
         run: xcodegen generate
       - name: Build for simulator

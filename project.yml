@@ -32,6 +32,7 @@ targets:
         PRODUCT_NAME: IlmMinAlKitab
         INFOPLIST_FILE: App/Info.plist
         CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"   # iPhone only (the iOS preset would otherwise make it universal)
     info:
       path: App/Info.plist
       properties:

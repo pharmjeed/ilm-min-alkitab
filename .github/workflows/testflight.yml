@@ -18,7 +18,7 @@ jobs:
           for v in TEAM KEY_ID ISSUER; do [ -n "${!v}" ] || { echo "missing $v"; exit 1; }; done
           [ -n "${{ secrets.ASC_KEY_P8 }}" ] || { echo "missing secret ASC_KEY_P8"; exit 1; }
       - name: Tools
-        run: brew install xcodegen && xcodebuild -version
+        run: brew install xcodegen && bash ci/select-xcode.sh
       - name: Generate project
         run: xcodegen generate
       - name: App Store Connect key
