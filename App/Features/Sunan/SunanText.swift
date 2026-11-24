@@ -6,8 +6,8 @@ enum SunanText {
     static let kicker = "سر علم السنن والأسباب"
     static let lead = "جعل الله لكل شيءٍ سببًا، وبيّن في كتابه وعلى لسان نبيّه ﷺ: إذا فعلتَ كذا كان لك كذا."
     /// الكهف 84, verbatim from the platform's data/quran.json (never shortened).
-    static let sababVerse = "﴿إِنَّا مَكَّنَّا لَهُ فِي الْأَرْضِ وَآتَيْنَاهُ مِنْ كُلِّ شَيْءٍ سَبَبًا﴾"
-    static let sababRef = "[الكهف: 84]"
+    static let sababVerse = "﴿إِنَّا مَكَّنَّا لَهُ فِي الْأَرْضِ وَآتَيْنَاهُ مِنْ كُلِّ شَيْءٍ سَبَبًا * فَأَتْبَعَ سَبَبًا﴾"
+    static let sababRef = "[الكهف: 84-85]"
     static let dayTitle = "برنامج اليوم والليلة"
     static let dayLead = "سنن يومك وليلتك من استيقاظك إلى نومك، ثم مواقف يومك، ثم أسبوعك وشهرك وسنتك: ماذا تفعل، وما ثمرته."
     static let deedsTitle = "ماذا يجلب هذا العمل؟"
