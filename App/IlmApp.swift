@@ -134,7 +134,7 @@ final class AppNav: ObservableObject {
     func leave(_ s: PackSection) {
         if let i = homePath.firstIndex(where: { $0.section == s }) { homePath.removeSubrange(i...) }
     }
-    /// Sibling pages (the previous / next category or time of «برنامج اليوم والليلة») replace the current page.
+    /// Sibling pages (the previous / next category or time of «برنامج اليوم والليلة», of «ماذا يجلب هذا العمل؟») replace the current page.
     func replaceLast(_ route: SunanRoute) {
         if !homePath.isEmpty { homePath.removeLast() }
         homePath.append(.s(route))
@@ -188,7 +188,9 @@ enum Route {
         case "sdayperiod": return [.sunan, .s(.day), .s(.dayPeriod(1))]
         case "sdaytime": return [.sunan, .s(.day), .s(.dayPeriod(1)), .s(.dayTime(2))]
         case "sdeeds": return [.sunan, .s(.deeds)]
-        case "sdeed": return [.sunan, .s(.deeds), .s(.deed(1))]
+        case "sdeedkind": return [.sunan, .s(.deeds), .s(.deedKind("good"))]
+        case "sdeedcat": return [.sunan, .s(.deeds), .s(.deedKind("good")), .s(.deedCategory("الأخلاق"))]
+        case "sdeed": return [.sunan, .s(.deeds), .s(.deedKind("good")), .s(.deedCategory("الإحسان إلى الناس")), .s(.deed(1))]
         case "smacro": return [.sunan, .s(.macro)]
         case "spairs": return [.sunan, .s(.pairs)]
         case "smethod": return [.sunan, .s(.method)]

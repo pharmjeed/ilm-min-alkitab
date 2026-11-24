@@ -260,6 +260,8 @@ struct SunanDeed: Decodable, Identifiable {
     let fruitsCount: Int
     let needsCount: Int
     let highlights: String?
+    /// «التصنيف» of «فهرس الأعمال» («الأخلاق», «ذنوب اللسان»…) — on every deed or on none.
+    let category: String?
     let items: [SunanDeedItem]
     var sin: Bool { kind == "sin" }
 }

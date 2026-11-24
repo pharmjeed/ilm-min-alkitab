@@ -283,7 +283,9 @@ struct SunanDayCardView: View {
     }
 }
 
-/// /sunan/deeds — app/sunan/deeds/page.tsx: «فهرس الأعمال», good deeds then sins.
+/// /sunan/deeds — «فهرس الأعمال». With «التصنيف» in the pack (owner 2026-11-24: «حتى هذه اعمل لها تصنيفات») it shows
+/// only the two main categories (good deeds · sins) → their sub-categories → the deeds → a deed's fruits; a pack without
+/// categories keeps the website's single list (good deeds then sins).
 struct SunanDeedsView: View {
     @Environment(\.colorScheme) private var scheme
     var body: some View {
@@ -294,6 +296,37 @@ struct SunanDeedsView: View {
         .sunanScreen(SunanText.deedsTitle, t)
     }
 }
+
+/// A sub-category of a kind («الأخلاق», «ذنوب اللسان»…) with its deeds.
+private struct DeedCategory: Identifiable {
+    let name: String
+    var deeds: [SunanDeed]
+    var id: String { name }
+}
+
+/// The sub-categories of a kind, in sheet order, each with its deeds.
+private func deedCategories(_ file: SunanDeedsFile, kind: String) -> [DeedCategory] {
+    var out: [DeedCategory] = []
+    for d in file.deeds where d.kind == kind {
+        guard let c = d.category else { continue }
+        if let i = out.firstIndex(where: { $0.name == c }) { out[i].deeds.append(d) } else { out.append(DeedCategory(name: c, deeds: [d])) }
+    }
+    return out
+}
+
+/// Crumbs of a deed page: through its kind and sub-category when the pack has them.
+private func deedTrail(_ deed: SunanDeed) -> [Crumb] {
+    guard let c = deed.category else { return [.sunanHome, Crumb(SunanText.deedsTitle, .deeds)] }
+    return [.sunanHome, Crumb(SunanText.deedsTitle, .deeds), Crumb(deedKindTitle(deed.kind), .deedKind(deed.kind)), Crumb(c, .deedCategory(c))]
+}
+
+private extension SunanDeedsFile {
+    var categorised: Bool { !deeds.isEmpty && deeds.allSatisfy { $0.category != nil } }
+}
+
+/// «الأعمال الصالحة» / «الذنوب» and their question.
+private func deedKindTitle(_ kind: String) -> String { kind == "sin" ? "الذنوب" : "الأعمال الصالحة" }
+private func deedKindQuestion(_ kind: String) -> String { kind == "sin" ? "ماذا تجرّ عليك من العواقب؟" : "ماذا تجلب لك من الثمرات؟" }
 
 private struct SunanDeedsContent: View {
     @Environment(\.colorScheme) private var scheme
@@ -317,22 +350,204 @@ private struct SunanDeedsContent: View {
                 .multilineTextAlignment(.leading)
                 .sunanHeader(t, gold: true)
 
-                if !good.isEmpty {
-                    SunanHeading(text: "\(SunanText.deedKind("good")): ماذا يجلب لك؟", size: 24).padding(.top, 32)
-                    LazyVStack(spacing: 12) {
-                        ForEach(good) { d in SunanLink(.deed(d.id)) { DeedCard(deed: d) } }
+                if file.categorised {
+                    SunanHeading(text: "اختر ما يناسبك", size: 24).padding(.top, 32)
+                    VStack(spacing: 12) {
+                        ForEach(["good", "sin"], id: \.self) { kind in
+                            DeedKindLink(kind: kind, cats: deedCategories(file, kind: kind))
+                        }
                     }
                     .padding(.top, 16)
-                }
-                if !sins.isEmpty {
-                    SunanHeading(text: "\(SunanText.deedKind("sin")): ماذا يجرّ عليك؟", size: 24).padding(.top, 40)
-                    LazyVStack(spacing: 12) {
-                        ForEach(sins) { d in SunanLink(.deed(d.id)) { DeedCard(deed: d) } }
+                } else {
+                    if !good.isEmpty {
+                        SunanHeading(text: "\(SunanText.deedKind("good")): ماذا يجلب لك؟", size: 24).padding(.top, 32)
+                        LazyVStack(spacing: 12) {
+                            ForEach(good) { d in SunanLink(.deed(d.id)) { DeedCard(deed: d) } }
+                        }
+                        .padding(.top, 16)
                     }
-                    .padding(.top, 16)
+                    if !sins.isEmpty {
+                        SunanHeading(text: "\(SunanText.deedKind("sin")): ماذا يجرّ عليك؟", size: 24).padding(.top, 40)
+                        LazyVStack(spacing: 12) {
+                            ForEach(sins) { d in SunanLink(.deed(d.id)) { DeedCard(deed: d) } }
+                        }
+                        .padding(.top, 16)
+                    }
                 }
             }
             .padding(16).padding(.bottom, 24)
+        }
+    }
+}
+
+private struct DeedKindLink: View {
+    let kind: String
+    let cats: [DeedCategory]
+    var body: some View {
+        if !cats.isEmpty {
+            SunanLink(.deedKind(kind)) {
+                DeedKindCard(kind: kind, deeds: cats.reduce(0) { $0 + $1.deeds.count }, categories: cats.map { $0.name })
+            }
+        }
+    }
+}
+
+/// A main category of «ماذا يجلب هذا العمل؟»: good deeds or sins, with the names of its sub-categories.
+private struct DeedKindCard: View {
+    @Environment(\.colorScheme) private var scheme
+    let kind: String
+    let deeds: Int
+    let categories: [String]
+    var body: some View {
+        let t = Theme(scheme)
+        let sin = kind == "sin"
+        VStack(alignment: .leading, spacing: 8) {
+            Text(deedKindTitle(kind)).font(AppFont.serif(26)).foregroundStyle(sin ? t.cream : t.gold)
+            Text(deedKindQuestion(kind)).font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9))
+            Text(categories.joined(separator: " · ")).font(AppFont.sans(14)).foregroundStyle(t.muted).lineSpacing(6).lineLimit(3)
+            Rectangle().fill(t.line).frame(height: 1).padding(.top, 4)
+            HStack {
+                Text("\(SunanText.count(categories.count, SunanText.categories)) · \(SunanText.count(deeds, SunanText.deeds))")
+                Spacer(minLength: 8)
+                Text("افتح ←")
+            }
+            .font(AppFont.sans(14)).foregroundStyle(t.gold)
+        }
+        .multilineTextAlignment(.leading)
+        .sunanRow(t, border: sin ? t.line : t.gold.opacity(0.45), avoid: sin, h: 20, v: 20, radius: 16)
+    }
+}
+
+/// Good deeds or sins: their sub-categories, each with its deeds' names — no fruits here.
+struct SunanDeedKindView: View {
+    @Environment(\.colorScheme) private var scheme
+    let kind: String
+    var body: some View {
+        let t = Theme(scheme)
+        SunanLoader(key: "deeds", load: { try await SunanStore.shared.deeds() }) { file in
+            SunanDeedKindContent(file: file, kind: kind)
+        }
+        .sunanScreen(SunanText.deedsTitle, t)
+    }
+}
+
+private struct SunanDeedKindContent: View {
+    @Environment(\.colorScheme) private var scheme
+    @EnvironmentObject private var nav: AppNav
+    let file: SunanDeedsFile
+    let kind: String
+
+    var body: some View {
+        let t = Theme(scheme)
+        let sin = kind == "sin"
+        let cats = deedCategories(file, kind: kind)
+        let other = sin ? "good" : "sin"
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                CrumbsView(trail: [.sunanHome, Crumb(SunanText.deedsTitle, .deeds)], current: deedKindTitle(kind))
+                    .padding(.bottom, 16)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(SunanText.deedsTitle).font(AppFont.sans(14)).foregroundStyle(t.gold)
+                    Text(deedKindTitle(kind)).font(AppFont.serif(30)).foregroundStyle(t.cream).lineSpacing(4)
+                    Text("\(SunanText.count(cats.count, SunanText.categories)) · \(SunanText.count(cats.reduce(0) { $0 + $1.deeds.count }, SunanText.deeds)) — \(deedKindQuestion(kind)) اختر:")
+                        .font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(6)
+                        .padding(.top, 8)
+                }
+                .multilineTextAlignment(.leading)
+                .sunanHeader(t, gold: !sin, avoid: sin)
+
+                VStack(spacing: 8) {
+                    ForEach(cats) { c in
+                        SunanLink(.deedCategory(c.name)) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(spacing: 12) {
+                                    Text(c.name).font(AppFont.serif(20)).foregroundStyle(t.cream)
+                                        .multilineTextAlignment(.leading)
+                                    Spacer(minLength: 4)
+                                    Text("\(SunanText.count(c.deeds.count, SunanText.deeds)) ←").font(AppFont.sans(12)).foregroundStyle(t.gold).fixedSize()
+                                }
+                                Text(c.deeds.map { $0.title }.joined(separator: " · ")).font(AppFont.sans(13)).foregroundStyle(t.muted)
+                                    .lineSpacing(5).lineLimit(2).multilineTextAlignment(.leading)
+                            }
+                            .sunanRow(t, border: sin ? t.line : t.gold.opacity(0.35), avoid: sin)
+                        }
+                    }
+                }
+                .padding(.top, 16)
+
+                FlowLayout(spacing: 8, lineSpacing: 8) {
+                    SunanBackLink(text: SunanText.deedsTitle) { nav.open(.deeds) }
+                    if !deedCategories(file, kind: other).isEmpty {
+                        SunanBackLink(text: "\(deedKindTitle(other)) ←") { nav.replaceLast(.deedKind(other)) }
+                    }
+                }
+                .padding(.top, 32)
+            }
+            .padding(16).padding(.bottom, 24)
+        }
+    }
+}
+
+/// One sub-category («الأخلاق», «ذنوب اللسان»…): its deeds as cards; a deed opens its fruits.
+struct SunanDeedCategoryView: View {
+    @Environment(\.colorScheme) private var scheme
+    let name: String
+    var body: some View {
+        let t = Theme(scheme)
+        SunanLoader(key: "deeds", load: { try await SunanStore.shared.deeds() }) { file in
+            SunanDeedCategoryContent(file: file, name: name)
+        }
+        .sunanScreen(SunanText.deedsTitle, t)
+    }
+}
+
+private struct SunanDeedCategoryContent: View {
+    @Environment(\.colorScheme) private var scheme
+    @EnvironmentObject private var nav: AppNav
+    let file: SunanDeedsFile
+    let name: String
+
+    var body: some View {
+        let t = Theme(scheme)
+        let deeds = file.deeds.filter { $0.category == name }
+        ScrollView {
+            if let kind = deeds.first?.kind {
+                let sin = kind == "sin"
+                let cats = deedCategories(file, kind: kind)
+                let k = cats.firstIndex { $0.name == name }
+                let prev = k.flatMap { $0 > 0 ? cats[$0 - 1].name : nil }
+                let next = k.flatMap { $0 + 1 < cats.count ? cats[$0 + 1].name : nil }
+                VStack(alignment: .leading, spacing: 0) {
+                    CrumbsView(trail: [.sunanHome, Crumb(SunanText.deedsTitle, .deeds), Crumb(deedKindTitle(kind), .deedKind(kind))], current: name)
+                        .padding(.bottom, 16)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(deedKindTitle(kind)).font(AppFont.sans(14)).foregroundStyle(sin ? t.muted : t.gold)
+                        Text(name).font(AppFont.serif(30)).foregroundStyle(t.cream).lineSpacing(4)
+                        Text("\(SunanText.count(deeds.count, SunanText.deeds)) — اختر عملًا تعرف \(sin ? "عواقبه" : "ثمراته"):")
+                            .font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(6)
+                            .padding(.top, 8)
+                    }
+                    .multilineTextAlignment(.leading)
+                    .sunanHeader(t, gold: !sin, avoid: sin)
+
+                    LazyVStack(spacing: 12) {
+                        ForEach(deeds) { d in SunanLink(.deed(d.id)) { DeedCard(deed: d) } }
+                    }
+                    .padding(.top, 16)
+
+                    FlowLayout(spacing: 8, lineSpacing: 8) {
+                        if let prev {
+                            SunanBackLink(text: "→ \(prev)") { nav.replaceLast(.deedCategory(prev)) }
+                        }
+                        SunanBackLink(text: deedKindTitle(kind)) { nav.open(.deedKind(kind)) }
+                        if let next {
+                            SunanBackLink(text: "\(next) ←") { nav.replaceLast(.deedCategory(next)) }
+                        }
+                    }
+                    .padding(.top, 32)
+                }
+                .padding(16).padding(.bottom, 24)
+            }
         }
     }
 }
@@ -383,10 +598,10 @@ private struct SunanDeedContent: View {
         ScrollView {
             if let deed {
                 VStack(alignment: .leading, spacing: 0) {
-                    CrumbsView(trail: [.sunanHome, Crumb(SunanText.deedsTitle, .deeds)], current: deed.title)
+                    CrumbsView(trail: deedTrail(deed), current: deed.title)
                         .padding(.bottom, 16)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(SunanText.deedKind(deed.kind)).font(AppFont.sans(14)).foregroundStyle(t.gold)
+                        Text(deed.category ?? SunanText.deedKind(deed.kind)).font(AppFont.sans(14)).foregroundStyle(t.gold)
                         Text(deed.title).font(AppFont.serif(30)).foregroundStyle(t.cream).lineSpacing(4)
                         Text("\(SunanText.deedCountLine(deed))، \(deed.sin ? "كل عاقبةٍ" : "كل ثمرةٍ") بسنّتها ومصدرها:")
                             .font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(6)
@@ -403,8 +618,13 @@ private struct SunanDeedContent: View {
                     }
                     .padding(.top, 16)
 
-                    SunanBackLink(text: "→ بقية الأعمال") { nav.open(.deeds) }
-                        .padding(.top, 32)
+                    if let c = deed.category {
+                        SunanBackLink(text: "→ بقية «\(c)»") { nav.open(.deedCategory(c)) }
+                            .padding(.top, 32)
+                    } else {
+                        SunanBackLink(text: "→ بقية الأعمال") { nav.open(.deeds) }
+                            .padding(.top, 32)
+                    }
                 }
                 .padding(16).padding(.bottom, 24)
             }
