@@ -5,6 +5,8 @@ import UserNotifications
 /// pop-up asking to enable notifications. One button, no skip — the iPhone's own permission dialog lets the
 /// person decline; either answer continues to «الرئيسية».
 struct NotificationsOnboardingView: View {
+    /// False while the opening shot is still playing over this page; the pop-up waits for it.
+    var ready = true
     var onDone: () -> Void
     @Environment(\.colorScheme) private var scheme
     @State private var showPopup = false
@@ -26,8 +28,9 @@ struct NotificationsOnboardingView: View {
                     .transition(.scale(scale: 0.92).combined(with: .opacity))
             }
         }
-        .task {
-            try? await Task.sleep(nanoseconds: 700_000_000)
+        .task(id: ready) {
+            guard ready, !showPopup else { return }
+            try? await Task.sleep(nanoseconds: 450_000_000)
             withAnimation(.spring(response: 0.45, dampingFraction: 0.86)) { showPopup = true }
         }
     }

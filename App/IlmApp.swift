@@ -35,13 +35,24 @@ struct RootView: View {
     @AppStorage("onboarded") private var onboarded = false
     @AppStorage("appearance") private var appearance = Appearance.dark.rawValue
     @Environment(\.scenePhase) private var phase
+    /// The opening shot plays on every launch (not in CI screenshots, except the `splash` route).
+    @State private var splashDone = Route.isCI && Route.arg != "splash"
 
     var body: some View {
-        Group {
-            if onboarded {
-                MainTabView()
-            } else {
-                NotificationsOnboardingView { onboarded = true }
+        ZStack {
+            Group {
+                if onboarded {
+                    MainTabView()
+                } else {
+                    NotificationsOnboardingView(ready: splashDone) { onboarded = true }
+                }
+            }
+            if !splashDone {
+                SplashView(hold: Route.arg == "splash") {
+                    withAnimation(.easeOut(duration: 0.35)) { splashDone = true }
+                }
+                .transition(.opacity)
+                .zIndex(1)
             }
         }
         .preferredColorScheme(Appearance.from(appearance).scheme)
