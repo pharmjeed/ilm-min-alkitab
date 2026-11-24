@@ -1,16 +1,12 @@
 import SwiftUI
 
-/// «الرئيسية»: the two treasures, stacked (owner's choice: one above the other, full width).
+/// «الرئيسية»: the two treasures, stacked (owner's choice: one above the other, full width) — no heading and no counts
+/// (owner 2026-11-24: «احذف هذه»).
 struct HomeView: View {
     @Environment(\.colorScheme) private var scheme
-    /// Counts follow a content update.
-    @ObservedObject private var sync = PackSync.shared
 
     var body: some View {
         let t = Theme(scheme)
-        let _ = sync.contentVersion
-        let namesCount = NamesRepo.shared.names.count
-        let sunanCount = SunanRepo.shared.index?.stats.items ?? 0
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
@@ -19,24 +15,16 @@ struct HomeView: View {
                     Text("علم من الكتاب").font(AppFont.serif(20)).foregroundStyle(t.cream)
                     Spacer()
                 }
-                .padding(.top, 4)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("من أين تبدأ اليوم؟").font(AppFont.serif(30)).foregroundStyle(t.cream)
-                    Text("اختر كنزًا، ثم اختر ما يوافق حالك.").font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.75))
-                }
-                .padding(.horizontal, 4).padding(.top, 10)
+                .padding(.top, 4).padding(.bottom, 12)
 
                 NavigationLink(value: HomeDestination.names) {
                     TreasureCard(title: "كنز الأسماء الحسنى",
                                  line: "اعرف أسماء الله، وافهمها، واعرف متى تدعوه بها.",
-                                 count: "\(Num.fmt(namesCount)) اسمًا من القرآن",
                                  accent: t.gold, fill: t.surface, systemIcon: nil)
                 }
                 NavigationLink(value: HomeDestination.sunan) {
                     TreasureCard(title: "سر علم السنن والأسباب",
                                  line: "لكل حاجةٍ سببٌ من الكتاب والسنة: افعل كذا، يكن لك كذا.",
-                                 count: "\(Num.fmt(sunanCount)) سنّةً وسببًا",
                                  accent: t.result, fill: Color(hex: scheme == .dark ? 0x183B35 : 0xE3F0E6), systemIcon: "book")
                 }
             }
@@ -74,7 +62,6 @@ extension HomeDestination {
 private struct TreasureCard: View {
     let title: String
     let line: String
-    let count: String
     let accent: Color
     let fill: Color
     let systemIcon: String?
@@ -96,7 +83,6 @@ private struct TreasureCard: View {
             Text(line).font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.85)).lineSpacing(5)
                 .multilineTextAlignment(.leading)
             HStack {
-                Text(count).font(AppFont.sans(14)).foregroundStyle(t.muted)
                 Spacer()
                 Text("ادخل ←").font(AppFont.sans(15, .bold)).foregroundStyle(Palette.night)
                     .padding(.horizontal, 16).frame(height: 40)
