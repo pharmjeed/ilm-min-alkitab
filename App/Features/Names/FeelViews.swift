@@ -75,7 +75,7 @@ struct SituationView: View {
                         HStack(spacing: 8) {
                             Text(door.label).font(AppFont.sans(14)).foregroundStyle(t.gold)
                             if sit.innerLevel != nil, sit.innerType != nil {
-                                NamesLink(.anfus(focus: repo.innerType(labelled: sit.innerType)?.slug)) {
+                                NamesLink(repo.innerType(labelled: sit.innerType).map { NamesRoute.anfusGroup($0.slug) } ?? .anfus()) {
                                     InnerMarkView(level: sit.innerLevel)
                                 }
                             }
@@ -284,14 +284,15 @@ struct ScopedHadith: Identifiable {
     var id: Int { hadith.i }
 }
 
-/// /feel/anfus — app/feel/anfus/page.tsx
+/// /feel/anfus — app/feel/anfus/page.tsx. In the app (owner 2026-11-24) the inner types are sub-categories:
+/// a card per type, and tapping one opens its own page with its situations (`AnfusGroupView`).
 struct AnfusView: View {
     @Environment(\.colorScheme) private var scheme
     var focus: String?
     private let repo = NamesRepo.shared
 
     /// الأنفال 53, verbatim from the platform's data/quran.json (the page is named after it).
-    private static let ayah = "ذَلِكَ بِأَنَّ اللَّهَ لَمْ يَكُ مُغَيِّرًا نِعْمَةً أَنْعَمَهَا عَلَى قَوْمٍ حَتَّى يُغَيِّرُوا مَا بِأَنْفُسِهِمْ وَأَنَّ اللَّهَ سَمِيعٌ عَلِيمٌ"
+    static let ayah = "ذَلِكَ بِأَنَّ اللَّهَ لَمْ يَكُ مُغَيِّرًا نِعْمَةً أَنْعَمَهَا عَلَى قَوْمٍ حَتَّى يُغَيِّرُوا مَا بِأَنْفُسِهِمْ وَأَنَّ اللَّهَ سَمِيعٌ عَلِيمٌ"
 
     var body: some View {
         let t = Theme(scheme)
@@ -304,54 +305,112 @@ struct AnfusView: View {
                         Text("[الأنفال: 53]").font(AppFont.sans(12.5)).foregroundStyle(t.muted).padding(.top, 4)
                         Text("حين يكون العلاج في قلبك لا في ظرفك")
                             .font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).padding(.top, 16)
-                        FlowLayout(spacing: 16, lineSpacing: 8) {
-                            HStack(spacing: 6) { InnerMarkView(level: "صريح"); Text("الحال نفسها في قلبك.") }
-                            HStack(spacing: 6) { InnerMarkView(level: "مشترك"); Text("ظرفٌ خارجي، وأثره في قلبك جزءٌ منه.") }
-                        }
-                        .font(AppFont.sans(14)).foregroundStyle(t.muted)
-                        .padding(.top, 12)
+                        InnerLegend().padding(.top, 12)
                     }
                     .multilineTextAlignment(.leading)
                     .siteCard(t, border: t.gold.opacity(0.4), padding: 20)
 
-                    FlowLayout(spacing: 8, lineSpacing: 8) {
-                        ForEach(repo.inner) { g in
-                            Button { withAnimation { proxy.scrollTo(g.slug, anchor: .top) } } label: { GoldChip(text: g.label) }
-                                .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.top, 16)
+                    Text("اختر ما في قلبك").font(AppFont.serif(24)).foregroundStyle(t.cream)
+                        .padding(.top, 28)
 
-                    ForEach(repo.inner) { g in
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(g.label).font(AppFont.serif(26)).foregroundStyle(t.gold)
-                            if !g.description.isEmpty {
-                                Text(g.description).font(AppFont.sans(16)).foregroundStyle(t.muted).lineSpacing(6).padding(.top, 4)
-                            }
-                            VStack(spacing: 8) {
-                                ForEach(g.situations, id: \.id) { ref in
-                                    if let s = repo.situation(ref.id) {
-                                        NamesLink(.situation(s.id)) {
-                                            SituationRowView(situation: s, mark: ref.level, doorLabel: repo.door(s.doorId)?.label)
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(.top, 12)
+                    LazyVStack(spacing: 10) {
+                        ForEach(repo.inner) { g in
+                            NamesLink(.anfusGroup(g.slug)) { AnfusGroupCard(group: g) }
+                                .id(g.slug)
                         }
-                        .multilineTextAlignment(.leading)
-                        .padding(.top, 32)
-                        .id(g.slug)
                     }
+                    .padding(.top, 12)
                 }
                 .padding(16).padding(.bottom, 24)
             }
             .task {
                 guard let focus else { return }
                 try? await Task.sleep(nanoseconds: 350_000_000)
-                withAnimation { proxy.scrollTo(focus, anchor: .top) }
+                withAnimation { proxy.scrollTo(focus, anchor: .center) }
             }
         }
         .namesScreen("ما بأنفسهم", t)
+    }
+}
+
+/// «صريح»: the state itself is in the heart · «مشترك»: an outside circumstance, its effect on the heart is part of it.
+private struct InnerLegend: View {
+    @Environment(\.colorScheme) private var scheme
+    var body: some View {
+        let t = Theme(scheme)
+        FlowLayout(spacing: 16, lineSpacing: 8) {
+            HStack(spacing: 6) { InnerMarkView(level: "صريح"); Text("الحال نفسها في قلبك.") }
+            HStack(spacing: 6) { InnerMarkView(level: "مشترك"); Text("ظرفٌ خارجي، وأثره في قلبك جزءٌ منه.") }
+        }
+        .font(AppFont.sans(14)).foregroundStyle(t.muted)
+    }
+}
+
+/// One sub-category of «ما بأنفسهم»: its name, its line and how many situations it holds.
+private struct AnfusGroupCard: View {
+    @Environment(\.colorScheme) private var scheme
+    let group: InnerType
+
+    var body: some View {
+        let t = Theme(scheme)
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(group.label).font(AppFont.serif(24)).foregroundStyle(t.gold)
+                if !group.description.isEmpty {
+                    Text(group.description).font(AppFont.sans(15)).foregroundStyle(t.cream.opacity(0.85))
+                        .lineSpacing(5)
+                }
+                Text(Arabic.count(group.situations.count, Arabic.situations))
+                    .font(AppFont.sans(13)).foregroundStyle(t.muted)
+            }
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.forward").font(.system(size: 15, weight: .semibold)).foregroundStyle(t.gold)
+        }
+        .padding(18)
+        .background(t.surface, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(t.line, lineWidth: 1))
+        .contentShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+/// One sub-category of «ما بأنفسهم» and its situations (صريح before مشترك, as in the pack).
+struct AnfusGroupView: View {
+    @Environment(\.colorScheme) private var scheme
+    let slug: String
+    private let repo = NamesRepo.shared
+
+    var body: some View {
+        let t = Theme(scheme)
+        let group = repo.inner.first { $0.slug == slug }
+        ScrollView {
+            if let group {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("ما بأنفسهم").font(AppFont.sans(14)).foregroundStyle(t.gold)
+                        Text(group.label).font(AppFont.serif(30)).foregroundStyle(t.cream)
+                        if !group.description.isEmpty {
+                            Text(group.description).font(AppFont.sans(16)).foregroundStyle(t.muted).lineSpacing(6)
+                                .padding(.top, 4)
+                        }
+                        InnerLegend().padding(.top, 12)
+                    }
+                    .multilineTextAlignment(.leading)
+                    .siteCard(t, border: t.gold.opacity(0.4), padding: 20)
+
+                    LazyVStack(spacing: 8) {
+                        ForEach(group.situations, id: \.id) { ref in
+                            if let s = repo.situation(ref.id) {
+                                NamesLink(.situation(s.id)) {
+                                    SituationRowView(situation: s, mark: ref.level, doorLabel: repo.door(s.doorId)?.label)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(16).padding(.bottom, 24)
+            }
+        }
+        .namesScreen(group?.label ?? "ما بأنفسهم", t)
     }
 }

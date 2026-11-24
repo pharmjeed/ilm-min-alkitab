@@ -23,6 +23,7 @@
 15-name1|-onboarded YES -route name1
 16-allnames|-onboarded YES -route allnames
 17-anfus|-onboarded YES -route anfus
+17b-anfus-group|-onboarded YES -route anfusgroup
 18-ask|-onboarded YES -route ask
 19-savesheet|-onboarded YES -route savesheet
 04b-sunan-domains|-onboarded YES -route sunandomains

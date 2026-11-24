@@ -159,6 +159,9 @@ enum Route {
         case "name1": return [.names, .n(.name(1))]
         case "allnames": return [.names, .n(.allNames())]
         case "anfus": return [.names, .n(.feel), .n(.anfus())]
+        case "anfusgroup":
+            let slug = NamesRepo.shared.inner.first?.slug ?? ""
+            return [.names, .n(.feel), .n(.anfus()), .n(.anfusGroup(slug))]
         case "ask": return [.names, .n(.ask())]
         // sunan section (ci/routes.txt `s…`)
         case "sdomain": return [.sunan, .s(.domain(1))]
