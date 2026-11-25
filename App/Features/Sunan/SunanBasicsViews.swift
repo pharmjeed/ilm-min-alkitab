@@ -62,7 +62,7 @@ private struct MacroCategoryCard: View {
 
     var body: some View {
         let t = Theme(scheme)
-        let first = group.list.prefix(3).map(\.cause).joined(separator: " · ") + (group.list.count > 3 ? " …" : "")
+        let first = group.list.prefix(3).map { $0.cause ?? $0.title }.joined(separator: " · ") + (group.list.count > 3 ? " …" : "")
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 12) {
                 Text("\(group.id)").font(AppFont.sans(14)).foregroundStyle(t.gold)
