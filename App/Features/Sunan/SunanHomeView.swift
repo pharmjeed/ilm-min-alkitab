@@ -115,7 +115,7 @@ struct SunanHomeView: View {
     }
 
     private func ask() {
-        nav.open(.ask(question: query.trimmingCharacters(in: .whitespacesAndNewlines)))
+        nav.open(SunanRoute.ask(question: query.trimmingCharacters(in: .whitespacesAndNewlines)))
     }
 }
 

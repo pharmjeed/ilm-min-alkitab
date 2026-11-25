@@ -41,7 +41,7 @@ struct SunanSearchView: View {
                         Text("جرّب كلمة أقصر أو أعمّ، أو اسأل عن موقفك بكلامك، أو ابدأ من الحاجات.").font(AppFont.sans(14)).foregroundStyle(t.muted)
                         HStack(spacing: 8) {
                             // owner 2026-11-25: words that match nothing go to the AI, which finds the closest state
-                            Button { nav.open(.ask(question: q)) } label: { Text("اسأل عن موقفك") }
+                            Button { nav.open(SunanRoute.ask(question: q)) } label: { Text("اسأل عن موقفك") }
                                 .buttonStyle(PrimaryPill(compact: true))
                             Button { nav.open(dest: .sunan) } label: { Text("ماذا تحتاج الآن؟") }
                                 .buttonStyle(SecondaryPill(compact: true))
