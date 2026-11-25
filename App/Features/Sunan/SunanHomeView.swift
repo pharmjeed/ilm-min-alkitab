@@ -86,16 +86,15 @@ struct SunanHomeView: View {
 
     private func header(_ t: Theme, _ st: SunanStats) -> some View {
         VStack(spacing: 0) {
-            Text(SunanText.kicker).font(AppFont.sans(14)).foregroundStyle(t.gold)
-            // owner 2026-11-24: the title «لكل نتيجةٍ سبب» removed
-            Text(SunanText.lead).font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(9)
-                .padding(.top, 12)
+            // owner 2026-11-24: the title «لكل نتيجةٍ سبب» removed; 2026-11-25: the kicker removed too, and the lead
+            // moved under the verses
             // owner 2026-11-24: the counts line gave way to the verses (whole, as in quran.json — الكهف 84-85,
             // joined with « * » like consecutive verses in content.json)
             Text(SunanText.sababVerse).font(AppFont.amiri(22)).foregroundStyle(t.gold).lineSpacing(8)
-                .padding(.top, 16)
             Text(SunanText.sababRef).font(AppFont.sans(12)).foregroundStyle(t.muted)
                 .padding(.top, 4)
+            Text(SunanText.lead).font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(9)
+                .padding(.top, 16)
             SunanSearchField(text: $query) { nav.open(.search(query: query.trimmingCharacters(in: .whitespacesAndNewlines))) }
                 .padding(.top, 24)
         }
