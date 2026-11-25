@@ -87,19 +87,34 @@ struct SunanHomeView: View {
         .sunanScreen(SunanText.kicker, t)
     }
 
+    /// Owner 2026-11-25: shown like the names section's hero (its mark, the verse in gold, the line in large type,
+    /// the search with its glass, the two gold buttons, the large faint mark behind).
     private func header(_ t: Theme, _ st: SunanStats, browse: @escaping () -> Void) -> some View {
         VStack(spacing: 0) {
+            // the section's mark, as on its card in the app's home page
+            Image(systemName: "book").font(.system(size: 40, weight: .light)).foregroundStyle(t.gold)
+                .padding(.bottom, 20)
             // owner 2026-11-24: the title «لكل نتيجةٍ سبب» removed; 2026-11-25: the kicker removed too, and the lead
             // moved under the verses
             // owner 2026-11-24: the counts line gave way to the verses (whole, as in quran.json — الكهف 84-85,
             // joined with « * » like consecutive verses in content.json)
-            Text(SunanText.sababVerse).font(AppFont.amiri(22)).foregroundStyle(t.gold).lineSpacing(8)
+            Text(SunanText.sababVerse).font(AppFont.amiri(26)).foregroundStyle(t.gold).lineSpacing(8)
             Text(SunanText.sababRef).font(AppFont.sans(12)).foregroundStyle(t.muted)
-                .padding(.top, 4)
-            Text(SunanText.lead).font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(9)
+                .padding(.top, 6)
+            Text(SunanText.lead).font(AppFont.serif(26)).foregroundStyle(t.cream).lineSpacing(6)
                 .padding(.top, 16)
-            SunanSearchField(text: $query, button: false) { ask() }
-                .padding(.top, 24)
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass").foregroundStyle(t.muted)
+                TextField("", text: $query, prompt: Text(SunanText.searchPrompt).foregroundColor(t.muted))
+                    .font(AppFont.sans(16)).foregroundStyle(t.cream)
+                    .submitLabel(.search)
+                    .onSubmit { ask() }
+                    .onChange(of: query) { _, v in if v.count > 120 { query = String(v.prefix(120)) } }
+            }
+            .padding(.horizontal, 16).frame(minHeight: 52)
+            .background(t.bg.opacity(0.4), in: Capsule())
+            .overlay(Capsule().stroke(t.line, lineWidth: 1))
+            .padding(.top, 28)
             // owner 2026-11-25: two gold buttons side by side, as in the names section — «تصفّح السنن» goes down to
             // «ماذا تحتاج الآن؟», «اسأل عن موقفك» opens the AI page (with what was typed, if anything) — owner
             // 2026-11-25: «اجعله بالذكاء الاصطناعي مثل قسم الأسماء ويرشد إلى الحالة الأقرب»
@@ -107,11 +122,21 @@ struct SunanHomeView: View {
                 Button(action: browse) { Text("تصفّح السنن") }.buttonStyle(PrimaryPill())
                 Button(action: ask) { Text("اسأل عن موقفك") }.buttonStyle(PrimaryPill())
             }
-            .padding(.top, 16)
+            .padding(.top, 24)
         }
         .multilineTextAlignment(.center)
+        .padding(.horizontal, 20).padding(.vertical, 44)
         .frame(maxWidth: .infinity)
-        .sunanHeader(t, padding: 20)
+        .background(alignment: .topTrailing) {
+            BrandMark(color: t.gold)
+                .frame(width: 420, height: 420)
+                .opacity(0.06)
+                .offset(x: 120, y: -120)
+        }
+        .clipped()
+        .background(t.surface, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(t.line, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     private func ask() {
