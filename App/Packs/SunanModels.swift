@@ -45,6 +45,8 @@ struct SunanNeed: Decodable, Identifiable {
     let id: Int
     let domainId: Int
     let title: String
+    /// «اسم مختصر» — two or three words, the chips of «ماذا تحتاج الآن؟» (packs before 2026-11-25 have none).
+    let short: String?
     /// "do" «ما تعمله» | "avoid" «ما تتجنّبه»
     let kind: String
     let counterpartNeedId: Int?

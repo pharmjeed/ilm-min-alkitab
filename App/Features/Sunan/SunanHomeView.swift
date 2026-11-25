@@ -211,11 +211,24 @@ private struct DomainCard: View {
             if let d = domain.description, !d.isEmpty {
                 Text(d).font(AppFont.sans(16)).foregroundStyle(t.muted).lineSpacing(5)
             }
+            // owner 2026-11-25: the needs as chips, like the covers of «ماذا تشعر الآن؟» («اسم مختصر» of each need)
+            let chips = SunanRepo.shared.needs(of: domain).compactMap(\.short)
+            if !chips.isEmpty {
+                FlowLayout(spacing: 6, lineSpacing: 6) {
+                    ForEach(chips, id: \.self) { c in
+                        Text(c)
+                            .font(AppFont.sans(13)).foregroundStyle(t.gold.opacity(0.9))
+                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .background(t.gold.opacity(0.05), in: Capsule())
+                            .overlay(Capsule().stroke(t.gold.opacity(0.3), lineWidth: 1))
+                    }
+                }
+            }
             Spacer(minLength: 0)
             VStack(spacing: 12) {
                 Rectangle().fill(t.line).frame(height: 1)
+                // owner 2026-11-25: the needs' count removed
                 HStack {
-                    Text(SunanText.count(domain.needIds.count, SunanText.needs))
                     Spacer(minLength: 8)
                     Text("افتح ←")
                 }
