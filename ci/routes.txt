@@ -8,6 +8,9 @@
 03d-names-intro-5|-onboarded YES -route namesintro5|5
 03e-names-intro-end|-onboarded YES -route namesintro6|5
 03f-names-intro-light|-onboarded YES -route namesintro2 -appearance light|5
+03i-bism-intro|-onboarded YES -route bismintro|5
+03j-bism-intro-2|-onboarded YES -route bismintro2|5
+03k-bism-intro-end|-onboarded YES -route bismintro7|5
 03g-names-after|-onboarded YES -route namesintroseen
 03h-names-light|-onboarded YES -route names -appearance light
 04-sunan|-onboarded YES -route sunan
@@ -51,6 +54,8 @@
 33c-sunan-item-more|-onboarded YES -route sitemmore
 33d-share-card|-onboarded YES -route sitemshare|8
 33e-share-card-light|-onboarded YES -route sitemshare -appearance light|8
+33f-share-card-witness|-onboarded YES -route namewshare|8
+33g-share-card-verse|-onboarded YES -route namevshare|8
 33d-sunan-savesheet|-onboarded YES -route ssavesheet
 34-sunan-itemq|-onboarded YES -route sitemq
 34b-sunan-itemq-text|-onboarded YES -route sitemqtext

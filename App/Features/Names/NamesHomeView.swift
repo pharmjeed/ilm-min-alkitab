@@ -8,6 +8,8 @@ struct NamesHomeView: View {
     private let repo = NamesRepo.shared
     /// «رحلة الحسنى» — opened from «ما أهمية الأسماء الحسنى؟» at the top of the section (owner 2026-11-25).
     @State private var showIntro = false
+    /// «رحلة باسم ربك» opened straight from its line (otherwise it is offered at the end of «رحلة الحسنى»).
+    @State private var bism = false
     @AppStorage(NamesIntro.seenKey) private var introSeen = false
 
     var body: some View {
@@ -17,6 +19,10 @@ struct NamesHomeView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     IntroInvite(seen: introSeen || NamesIntro.ciSeen, lead: Journey.husna.lead) {
                         introSeen = true
+                        bism = false
+                        showIntro = true
+                    } bism: {
+                        bism = true
                         showIntro = true
                     } later: {
                         withAnimation(.easeInOut(duration: 0.25)) { introSeen = true }
@@ -41,10 +47,11 @@ struct NamesHomeView: View {
         .onAppear {
             guard NamesIntro.ciFocus != nil, !NamesIntro.ciOpened else { return }
             NamesIntro.ciOpened = true
+            bism = NamesIntro.ciBism
             showIntro = true
         }
         .fullScreenCover(isPresented: $showIntro) {
-            JourneyIntroView(journey: .husna, focus: NamesIntro.ciFocus ?? 0)
+            JourneyIntroView(journey: bism ? .bism : .husna, next: bism ? nil : .bism, focus: NamesIntro.ciFocus ?? 0)
                 .environment(\.layoutDirection, .rightToLeft)
         }
     }
@@ -57,22 +64,16 @@ private struct IntroInvite: View {
     let seen: Bool
     let lead: String
     let start: () -> Void
+    let bism: () -> Void
     let later: () -> Void
 
     var body: some View {
         let t = Theme(scheme)
         if seen {
-            Button(action: start) {
-                HStack(spacing: 6) {
-                    Image(systemName: "map")
-                    Text("ما أهمية الأسماء الحسنى؟ ←")
-                }
-                .font(AppFont.sans(15)).foregroundStyle(t.gold)
-                .padding(.horizontal, 14).frame(minHeight: 40)
-                .overlay(Capsule().stroke(t.gold.opacity(0.45), lineWidth: 1))
-                .contentShape(Capsule())
+            FlowLayout(spacing: 8, lineSpacing: 8) {
+                line("ما أهمية الأسماء الحسنى؟ ←", start, t)
+                line("رحلة باسم ربك ←", bism, t)
             }
-            .buttonStyle(.plain)
         } else {
             VStack(alignment: .leading, spacing: 0) {
                 Image(systemName: "map").font(.system(size: 22)).foregroundStyle(t.gold)
@@ -97,6 +98,20 @@ private struct IntroInvite: View {
             .background(t.surface, in: RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(t.gold, lineWidth: 1.5))
         }
+    }
+
+    private func line(_ title: String, _ action: @escaping () -> Void, _ t: Theme) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "map")
+                Text(title)
+            }
+            .font(AppFont.sans(15)).foregroundStyle(t.gold)
+            .padding(.horizontal, 14).frame(minHeight: 40)
+            .overlay(Capsule().stroke(t.gold.opacity(0.45), lineWidth: 1))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
 

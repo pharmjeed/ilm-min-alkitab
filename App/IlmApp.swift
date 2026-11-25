@@ -168,8 +168,8 @@ enum Route {
         case "situation": return feelSituation
         case "nameinsit": return [.names, .n(.feel), .n(.door(1)), .n(.situation(1)), .n(.nameInSituation(name: 99, situation: 1))]
         case "name20": return [.names, .n(.name(20))]
-        case "name20v", "savesheet": return [.names, .n(.name(20, focus: 1))]
-        case "name20w": return [.names, .n(.name(20, tab: .sunnah, focus: 1))]
+        case "name20v", "savesheet", "namevshare": return [.names, .n(.name(20, focus: 1))]
+        case "name20w", "namewshare": return [.names, .n(.name(20, tab: .sunnah, focus: 1))]
         case "name20pray": return [.names, .n(.name(20, tab: .pray))]
         case "name20sunnah": return [.names, .n(.name(20, tab: .sunnah))]
         case "name1": return [.names, .n(.name(1))]
@@ -205,7 +205,7 @@ enum Route {
         case "spairs": return [.sunan, .s(.pairs)]
         case "smethod": return [.sunan, .s(.method)]
         case "ssearch": return [.sunan, .s(.search(query: "رزق"))]
-        default: return arg.hasPrefix("namesintro") ? [.names] : []  // «رحلة الحسنى» over the names home
+        default: return arg.hasPrefix("namesintro") || arg.hasPrefix("bismintro") ? [.names] : []  // a journey over the names home
         }
     }
 

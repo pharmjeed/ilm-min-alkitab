@@ -280,6 +280,8 @@ struct SharePill: View {
     let text: String
     let url: URL
     var card: ShareCard? = nil
+    /// The CI route that opens this card for a screenshot (ci/routes.txt).
+    var ci = "sitemshare"
     @State private var showCard = false
     var body: some View {
         if let card {
@@ -292,8 +294,8 @@ struct SharePill: View {
                     .environment(\.layoutDirection, .rightToLeft)
             }
             .onAppear {
-                // CI screenshot of the card page (ci/routes.txt `sitemshare`)
-                if Route.isCI, Route.arg == "sitemshare", !ShareCardCI.shown { ShareCardCI.shown = true; showCard = true }
+                // CI screenshot of the card page (ci/routes.txt `sitemshare`, `namewshare`, `namevshare`)
+                if Route.isCI, Route.arg == ci, !ShareCardCI.shown { ShareCardCI.shown = true; showCard = true }
             }
         } else {
             ShareLink(item: url, subject: Text(title), message: Text(text)) {

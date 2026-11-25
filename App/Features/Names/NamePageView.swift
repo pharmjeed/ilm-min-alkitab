@@ -294,7 +294,8 @@ private struct NameHero: View {
                 SharePill(title: Arabic.nameTitle(detail.name), text: "\(detail.name) — مواضعه في القرآن ومتى يُدعى به",
                           url: Site.nameURL(detail.id),
                           card: ShareCard(kicker: "من أسماء الله الحسنى", headline: AttributedString(detail.name), headlineIsName: true,
-                                          source: "مواضعه في القرآن، ومعناه، ومتى يُدعى به"))
+                                          source: "مواضعه في القرآن، ومعناه، ومتى يُدعى به",
+                                          notes: ShareCard.notes([(nil, detail.meaning)])))
                 NavigationLink(value: HomeDestination.n(.ask(question: "ما الذي يعلّمني اسم \(detail.name) ومتى أدعو به؟"))) {
                     Text("اسأل عن هذا الاسم")
                 }

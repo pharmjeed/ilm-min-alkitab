@@ -4,6 +4,8 @@ import SwiftUI
 /// forced — the section home invites to it («ما أهمية الأسماء الحسنى؟»), and the whole road is one page: each station
 /// opens on a tap (its verses in full, «ماذا تعمل؟» and «كيف تستفيد؟»), then the end of the road and «ادخل القسم».
 /// The texts and verses are generated from the owner's file (HusnaJourneyData.swift); the verses match quran.json.
+/// «رحلة باسم ربك» (owner 2026-11-25, BismJourneyData.swift) is the second journey: offered at the end of the first,
+/// and as a small line at the top of the section.
 struct Journey {
     let title: String
     let lead: String
@@ -13,8 +15,11 @@ struct Journey {
     let endText: String
     let summaryTitle: String
     let summary: [String]
+    /// Empty ⇒ not shown.
     let closing: String
     let footnote: String
+    /// The verse of the end of the road («رحلة باسم ربك»: مريم 65), under its title.
+    var endVerse: JourneyVerse? = nil
 }
 
 struct JourneyStation: Identifiable {
@@ -43,13 +48,17 @@ struct JourneyVerse: Identifiable {
 enum NamesIntro {
     /// Set once the visitor started the journey or chose «ليس الآن»: the invitation card becomes a small line.
     static let seenKey = "namesIntroSeen"
-    /// CI: `-route namesintro` (the road), `namesintro1`…`namesintro5` (a station opened), `namesintro6` (the end).
+    /// CI: `-route namesintro` (the road), `namesintro1`…`namesintro5` (a station opened), `namesintro6` (the end);
+    /// `bismintro…` the same for «رحلة باسم ربك».
     static var ciFocus: Int? {
         let a = Route.arg
-        guard Route.isCI, a.hasPrefix("namesintro") else { return nil }
-        let rest = a.dropFirst("namesintro".count)
+        guard Route.isCI, let p = ["namesintro", "bismintro"].first(where: { a.hasPrefix($0) }), a != "namesintroseen"
+        else { return nil }
+        let rest = a.dropFirst(p.count)
         return rest.isEmpty ? 0 : Int(rest)
     }
+    /// CI: which journey the route opens.
+    static var ciBism: Bool { Route.isCI && Route.arg.hasPrefix("bismintro") }
     /// CI: `-route namesintroseen` — the section home after the invitation.
     static var ciSeen: Bool { Route.isCI && Route.arg == "namesintroseen" }
     /// The CI journey opens once (the section home appears again when it closes).
@@ -60,13 +69,16 @@ enum NamesIntro {
 struct JourneyIntroView: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.dismiss) private var dismiss
-    let journey: Journey
+    @State private var journey: Journey
+    /// The journey offered at the end of the road («الرحلة التالية»), if any.
+    @State private var next: Journey?
     /// CI only: a station to open (1…5) or the end of the road (stations + 1).
     let focus: Int
     @State private var open: Int?
 
-    init(journey: Journey, focus: Int = 0) {
-        self.journey = journey
+    init(journey: Journey, next: Journey? = nil, focus: Int = 0) {
+        _journey = State(initialValue: journey)
+        _next = State(initialValue: next)
         self.focus = focus
         _open = State(initialValue: (1...max(1, journey.stations.count)).contains(focus) ? focus : nil)
     }
@@ -85,12 +97,28 @@ struct JourneyIntroView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 0) {
-                        header(t)
+                        header(t).id("top")
                         stations(t).padding(.top, 24)
                         end(t).padding(.top, 24).id("end")
-                        Button { dismiss() } label: { Text("ادخل القسم ←").frame(maxWidth: .infinity) }
-                            .buttonStyle(PrimaryPill())
-                            .padding(.top, 20)
+                        if let n = next {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    journey = n
+                                    next = nil
+                                    open = nil
+                                }
+                                proxy.scrollTo("top", anchor: .top)
+                            } label: { Text("الرحلة التالية: \(n.title) ←").frame(maxWidth: .infinity) }
+                                .buttonStyle(PrimaryPill())
+                                .padding(.top, 20)
+                            Button { dismiss() } label: { Text("ادخل القسم ←").frame(maxWidth: .infinity) }
+                                .buttonStyle(SecondaryPill())
+                                .padding(.top, 10)
+                        } else {
+                            Button { dismiss() } label: { Text("ادخل القسم ←").frame(maxWidth: .infinity) }
+                                .buttonStyle(PrimaryPill())
+                                .padding(.top, 20)
+                        }
                     }
                     .padding(16).padding(.bottom, 16)
                 }
@@ -146,7 +174,7 @@ struct JourneyIntroView: View {
                         .background(s.side ? Color.clear : t.gold, in: Circle())
                         .overlay(Circle().stroke(t.gold, style: StrokeStyle(lineWidth: 1.5, dash: s.side ? [4, 3] : [])))
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("\(s.verb) · \(s.name)").font(AppFont.sans(13, .medium)).foregroundStyle(t.gold)
+                        Text(s.name.isEmpty ? s.verb : "\(s.verb) · \(s.name)").font(AppFont.sans(13, .medium)).foregroundStyle(t.gold)
                         Text(s.title).font(AppFont.serif(20)).foregroundStyle(t.cream).lineSpacing(3)
                         Text(s.count).font(AppFont.sans(12.5)).foregroundStyle(t.muted)
                     }
@@ -210,7 +238,13 @@ struct JourneyIntroView: View {
         return VStack(spacing: 0) {
             VStack(spacing: 14) {
                 Text(journey.endKicker).font(AppFont.sans(16, .bold))
-                Text(journey.endTitle).font(AppFont.serif(60))
+                Text(journey.endTitle).font(AppFont.serif(journey.endTitle.count > 10 ? 40 : 60)).lineSpacing(4)
+                if let v = journey.endVerse {
+                    VStack(spacing: 6) {
+                        Text("﴿\(v.text)﴾").font(AppFont.amiri(21)).lineSpacing(10)
+                        Text("[\(v.ref)]").font(AppFont.sans(13, .medium))
+                    }
+                }
                 Text(journey.endText).font(AppFont.sans(19, .medium)).lineSpacing(6)
                 Rectangle().fill(Palette.night.opacity(0.25)).frame(height: 1).padding(.vertical, 4)
                 Text(journey.summaryTitle).font(AppFont.sans(15, .bold))
@@ -225,7 +259,9 @@ struct JourneyIntroView: View {
                                 .stroke(side ? Palette.night : Color.clear, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])))
                     }
                 }
-                Text(journey.closing).font(AppFont.serif(24)).lineSpacing(6).padding(.top, 6)
+                if !journey.closing.isEmpty {
+                    Text(journey.closing).font(AppFont.serif(24)).lineSpacing(6).padding(.top, 6)
+                }
             }
             .foregroundStyle(Palette.night)
             .multilineTextAlignment(.center)

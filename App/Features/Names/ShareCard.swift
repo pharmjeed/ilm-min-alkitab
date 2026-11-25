@@ -10,9 +10,35 @@ struct ShareCard {
     /// The large line (a name, or «السبب ← النتيجة»).
     var headline: AttributedString? = nil
     var headlineIsName = false
+    /// «جملة الربط» of a situation page (the precise state, then the bridge sentence) — above the scripture, as on the card.
+    var bridge: Note? = nil
     /// The whole scripture text as the page shows it.
     var scripture: String? = nil
     var source: String? = nil
+    /// The card's explanations under the text (owner 2026-11-25: «اريد معه الكلام») — «القصة»، «سبب ذكر الاسم»…
+    var notes: [Note] = []
+
+    /// One explanation: an optional small gold title over its text (`**bold**` as on the page).
+    struct Note {
+        var title: String?
+        var text: String
+    }
+
+    /// The non-empty explanations of a card, in its order.
+    static func notes(_ pairs: [(String?, String?)]) -> [Note] {
+        pairs.compactMap { title, text in
+            guard let x = text?.trimmingCharacters(in: .whitespacesAndNewlines), !x.isEmpty else { return nil }
+            return Note(title: title, text: x)
+        }
+    }
+
+    /// The bridge box of a situation page, when it has either part.
+    static func bridge(situation: String?, note: String?) -> Note? {
+        let s = situation?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let n = note?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if s.isEmpty && n.isEmpty { return nil }
+        return Note(title: s.isEmpty ? nil : s, text: n)
+    }
 
     /// A hadith between « », unless its text already opens with one (many do).
     static func quoted(_ s: String) -> String {
@@ -38,6 +64,23 @@ struct ShareCardView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 14)
             }
+            if let b = card.bridge {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let s = b.title {
+                        Text(s).font(AppFont.sans(15, .bold)).foregroundStyle(gold).lineSpacing(5)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if !b.text.isEmpty {
+                        Text(Arabic.rich(b.text, size: 15)).font(AppFont.sans(15)).foregroundStyle(cream.opacity(0.95))
+                            .lineSpacing(7).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(gold.opacity(0.07))
+                .overlay(alignment: .leading) { Rectangle().fill(gold.opacity(0.6)).frame(width: 2) }
+                .padding(.top, 16)
+            }
             if let s = card.scripture, !s.isEmpty {
                 Text(s).font(AppFont.amiri(20)).foregroundStyle(cream).lineSpacing(11)
                     .fixedSize(horizontal: false, vertical: true)
@@ -47,6 +90,18 @@ struct ShareCardView: View {
                 Text(src).font(AppFont.sans(12)).foregroundStyle(cream.opacity(0.62)).lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 12)
+            }
+            ForEach(Array(card.notes.enumerated()), id: \.offset) { _, n in
+                VStack(alignment: .leading, spacing: 4) {
+                    if let title = n.title {
+                        Text(title).font(AppFont.sans(14, .bold)).foregroundStyle(gold)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Text(Arabic.rich(n.text, size: 15)).font(AppFont.sans(15)).foregroundStyle(cream.opacity(0.9))
+                        .lineSpacing(7).fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 18)
             }
             Rectangle().fill(gold.opacity(0.3)).frame(height: 1).padding(.top, 22)
             HStack(spacing: 10) {

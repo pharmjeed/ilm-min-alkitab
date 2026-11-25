@@ -200,7 +200,11 @@ struct VerseCardView: View {
                 FavoritePill(key: .position(name: nameId, surah: v.s, ayah: v.a), item: "\(nameLabel) — \(v.surah) \(v.a)")
                 CopyPill(label: "نسخ الآية", text: copyText)
                 SharePill(title: "\(nameLabel) — \(v.surah) \(v.a)", text: "﴿\(v.text)﴾ \(ref)", url: link,
-                          card: ShareCard(kicker: nameLabel, scripture: "﴿\(v.text)﴾", source: ref))
+                          card: ShareCard(kicker: nameLabel, bridge: ShareCard.bridge(situation: situation, note: note),
+                                          scripture: "﴿\(v.text)﴾", source: ref,
+                                          notes: ShareCard.notes([("القصة", v.context), ("سبب ذكر الاسم", v.reason),
+                                                                  ("ماذا يضيف هذا الموضع؟", v.adds)])),
+                          ci: "namevshare")
                 if let inside {
                     NamesLink(inside) { ActionPill { Text("داخل صفحة الاسم") } }
                 }
@@ -315,7 +319,11 @@ struct WitnessCardView: View {
             FlowLayout(spacing: 8, lineSpacing: 8) {
                 CopyPill(label: "نسخ الحديث", text: copyText)
                 SharePill(title: "\(nameLabel) — \(source)", text: "«\(String(w.text.prefix(280)))» \(doc)", url: link,
-                          card: ShareCard(kicker: nameLabel, scripture: ShareCard.quoted(w.text), source: doc + judgment))
+                          card: ShareCard(kicker: nameLabel, bridge: ShareCard.bridge(situation: situation, note: note),
+                                          scripture: ShareCard.quoted(w.text), source: doc + judgment,
+                                          notes: ShareCard.notes([("المشهد (القصة)", w.scene), ("لماذا جاء الاسم هنا؟", w.reason),
+                                                                  ("ماذا يضيف هذا الشاهد؟", w.adds)])),
+                          ci: "namewshare")
                 if let inside {
                     NamesLink(inside) { ActionPill { Text("داخل صفحة الاسم") } }
                 }
