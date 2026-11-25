@@ -1,4 +1,5 @@
 00-splash|-onboarded YES -route splash|4
+00b-splash-light|-onboarded YES -route splash -appearance light|4
 01-onboarding|-onboarded NO
 02-home|-onboarded YES -route home
 03-names|-onboarded YES -route names
