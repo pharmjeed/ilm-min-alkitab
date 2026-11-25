@@ -13,6 +13,7 @@ struct MoreView: View {
     @ObservedObject private var sync = PackSync.shared
     @State private var auth: UNAuthorizationStatus?
     @State private var showAbout = Route.moreOpenAbout
+    @State private var showFeedback = Route.arg == "morefeedback"
     @State private var ciDone = false
     @State private var signingIn = false
     @State private var confirmDelete = false
@@ -53,6 +54,7 @@ struct MoreView: View {
         }
         .navigationTitle("المزيد")
         .navigationDestination(isPresented: $showAbout) { MarkdownPageView(page: .about) }
+        .navigationDestination(isPresented: $showFeedback) { FeedbackView() }
         .sheet(isPresented: $signingIn) { SaveSignInSheet(item: nil) }
         .confirmationDialog("حذف الحساب", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("احذف حسابي نهائيًا", role: .destructive) { Task { _ = await Account.shared.deleteAccount() } }
@@ -142,17 +144,12 @@ struct MoreView: View {
     private func aboutSection(_ t: Theme) -> some View {
         Section {
             // owner 2026-11-25: «عن المنصة» and «المنهجية» removed
-            Link(destination: Site.url("/suggest")) {
-                HStack {
-                    rowLabel(t, "envelope", "أرسل ملاحظة")
-                    Spacer()
-                    Image(systemName: "arrow.up.forward").font(.system(size: 13, weight: .medium)).foregroundStyle(t.muted)
-                }
-            }
+            // owner 2026-11-25: sent from the app itself (FeedbackView), not through the website
+            NavigationLink { FeedbackView() } label: { rowLabel(t, "envelope", "أرسل ملاحظة") }
         } header: {
             header("عن التطبيق", t)
         } footer: {
-            footer("تُفتح صفحة «اقتراح أو إضافة» في موقع المنصة، وتصل ملاحظتك إلى صاحبها.", t)
+            footer("تصل ملاحظتك إلى صاحب المنصة مباشرة.", t)
         }
         .listRowBackground(t.surface)
     }

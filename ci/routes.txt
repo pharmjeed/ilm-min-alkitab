@@ -16,6 +16,7 @@
 06b-more-update|-onboarded YES -route moreupdate|12
 06c-more-bottom|-onboarded YES -route morebottom
 06d-more-about|-onboarded YES -route moreabout
+06h-more-feedback|-onboarded YES -route morefeedback|6
 06e-more-light|-onboarded YES -route more -appearance light
 06f-home-light|-onboarded YES -route home -appearance light
 06g-name20-larger|-onboarded YES -route name20 -textScale 2

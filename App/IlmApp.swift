@@ -153,7 +153,7 @@ enum Route {
     static var initialTab: Int {
         switch arg {
         case "saved": return 1
-        case "more", "moreupdate", "moreabout", "morebottom": return 2
+        case "more", "moreupdate", "moreabout", "morebottom", "morefeedback": return 2
         default: return 0
         }
     }
