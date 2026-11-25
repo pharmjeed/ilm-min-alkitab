@@ -1,61 +1,130 @@
 import SwiftUI
 
-/// /sunan/macro — app/sunan/macro/page.tsx: «السنن الكبرى» grouped by domain (sheet order of first appearance).
-struct SunanMacroView: View {
-    @Environment(\.colorScheme) private var scheme
-    private let repo = SunanRepo.shared
-
-    private struct DomainGroup: Identifiable {
+/// «السنن الكبرى» by category (owner 2026-11-25: «السنن الكبرى ثم التصنيف، مثلًا الرزق والمال، ثم تظهر تحته القواعد»):
+/// the domains of the sheet (order of first appearance) as category cards; each opens its rules (SunanMacroDomainView).
+enum MacroGroups {
+    struct Group: Identifiable {
         let id: Int
         let domain: String
         var list: [MacroSunnah]
     }
 
-    private var groups: [DomainGroup] {
-        var out: [DomainGroup] = []
-        for m in repo.index?.macro ?? [] {
+    static func all() -> [Group] {
+        var out: [Group] = []
+        for m in SunanRepo.shared.index?.macro ?? [] {
             if let i = out.firstIndex(where: { $0.domain == m.domain }) {
                 out[i].list.append(m)
             } else {
-                out.append(DomainGroup(id: out.count + 1, domain: m.domain, list: [m]))
+                out.append(Group(id: out.count + 1, domain: m.domain, list: [m]))
             }
         }
         return out
     }
+}
+
+/// /sunan/macro — the categories of «السنن الكبرى».
+struct SunanMacroView: View {
+    @Environment(\.colorScheme) private var scheme
+    private let repo = SunanRepo.shared
 
     var body: some View {
         let t = Theme(scheme)
-        let groups = self.groups
-        ScrollViewReader { proxy in
-            ScrollView {
+        let groups = MacroGroups.all()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                CrumbsView(trail: [.sunanHome], current: "السنن الكبرى")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(SunanText.title).font(AppFont.sans(14)).foregroundStyle(t.gold)
+                    Text("السنن الكبرى").font(AppFont.serif(30)).foregroundStyle(t.cream)
+                    Text("\(SunanText.count(repo.index?.macro.count ?? 0, SunanText.sunan)) جامعة: سببٌ ونتيجته، بآياته من القرآن وشواهده من السنة.")
+                        .font(AppFont.sans(16)).foregroundStyle(t.muted).lineSpacing(8).padding(.top, 4)
+                }
+                .multilineTextAlignment(.leading)
+                .sunanHeader(t)
+
+                LazyVStack(spacing: 12) {
+                    ForEach(groups) { g in
+                        SunanLink(.macroDomain(g.domain)) { MacroCategoryCard(group: g) }
+                    }
+                }
+                .padding(.top, 16)
+            }
+            .padding(16).padding(.bottom, 24)
+        }
+        .sunanScreen("السنن الكبرى", t)
+    }
+}
+
+/// One category of «السنن الكبرى»: number, title, its first rules, «افتح ←» (like the categories of «كل الأسماء»).
+private struct MacroCategoryCard: View {
+    @Environment(\.colorScheme) private var scheme
+    let group: MacroGroups.Group
+
+    var body: some View {
+        let t = Theme(scheme)
+        let first = group.list.prefix(3).map(\.cause).joined(separator: " · ") + (group.list.count > 3 ? " …" : "")
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                Text("\(group.id)").font(AppFont.sans(14)).foregroundStyle(t.gold)
+                    .frame(width: 36, height: 36)
+                    .overlay(Circle().stroke(t.gold.opacity(0.6), lineWidth: 1))
+                Text(group.domain).font(AppFont.serif(22)).foregroundStyle(t.cream)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+            }
+            Text(first).font(AppFont.sans(14)).foregroundStyle(t.muted).lineSpacing(6).lineLimit(2)
+            Rectangle().fill(t.line).frame(height: 1)
+            HStack {
+                Spacer(minLength: 8)
+                Text("افتح ←")
+            }
+            .font(AppFont.sans(14)).foregroundStyle(t.gold)
+        }
+        .multilineTextAlignment(.leading)
+        .siteCard(t, radius: 16)
+        .contentShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+/// One category of «السنن الكبرى» (e.g. «الرزق والمال»): its rules, then the previous / next category.
+struct SunanMacroDomainView: View {
+    @Environment(\.colorScheme) private var scheme
+    @EnvironmentObject private var nav: AppNav
+    let domain: String
+
+    var body: some View {
+        let t = Theme(scheme)
+        let groups = MacroGroups.all()
+        let k = groups.firstIndex { $0.domain == domain }
+        ScrollView {
+            if let k {
+                let g = groups[k]
+                let prev = k > 0 ? groups[k - 1] : nil
+                let next = k + 1 < groups.count ? groups[k + 1] : nil
                 VStack(alignment: .leading, spacing: 0) {
-                    CrumbsView(trail: [.sunanHome], current: "السنن الكبرى")
+                    CrumbsView(trail: [.sunanHome, Crumb("السنن الكبرى", .macro)], current: g.domain)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(SunanText.title).font(AppFont.sans(14)).foregroundStyle(t.gold)
-                        Text("السنن الكبرى").font(AppFont.serif(30)).foregroundStyle(t.cream)
-                        Text("\(SunanText.count(repo.index?.macro.count ?? 0, SunanText.sunan)) جامعة: سببٌ ونتيجته، بآياته من القرآن وشواهده من السنة.")
-                            .font(AppFont.sans(16)).foregroundStyle(t.muted).lineSpacing(8).padding(.top, 4)
-                        FlowLayout(spacing: 8, lineSpacing: 8) {
-                            ForEach(groups) { g in
-                                Button { withAnimation { proxy.scrollTo("g\(g.id)", anchor: .top) } } label: {
-                                    SunanChip(text: g.domain, size: 14)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.top, 12)
+                        Text("السنن الكبرى").font(AppFont.sans(14)).foregroundStyle(t.gold)
+                        Text(g.domain).font(AppFont.serif(30)).foregroundStyle(t.cream).lineSpacing(4)
                     }
                     .multilineTextAlignment(.leading)
                     .sunanHeader(t)
 
-                    ForEach(groups) { g in
-                        VStack(alignment: .leading, spacing: 12) {
-                            SunanHeading(text: g.domain, size: 24)
-                            ForEach(g.list) { m in MacroCard(macro: m) }
-                        }
-                        .padding(.top, 32)
-                        .id("g\(g.id)")
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(g.list) { m in MacroCard(macro: m) }
                     }
+                    .padding(.top, 16)
+
+                    FlowLayout(spacing: 8, lineSpacing: 8) {
+                        if let prev {
+                            SunanBackLink(text: "→ \(prev.domain)") { nav.replaceLast(.macroDomain(prev.domain)) }
+                        }
+                        SunanBackLink(text: "كل السنن الكبرى") { nav.open(.macro) }
+                        if let next {
+                            SunanBackLink(text: "\(next.domain) ←") { nav.replaceLast(.macroDomain(next.domain)) }
+                        }
+                    }
+                    .padding(.top, 32)
                 }
                 .padding(16).padding(.bottom, 24)
             }

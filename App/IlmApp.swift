@@ -201,6 +201,7 @@ enum Route {
         case "sdeedcat": return [.sunan, .s(.deeds), .s(.deedKind("good")), .s(.deedCategory("الأخلاق"))]
         case "sdeed": return [.sunan, .s(.deeds), .s(.deedKind("good")), .s(.deedCategory("الإحسان إلى الناس")), .s(.deed(1))]
         case "smacro": return [.sunan, .s(.macro)]
+        case "smacrod": return [.sunan, .s(.macro), .s(.macroDomain("الرزق والمال"))]
         case "spairs": return [.sunan, .s(.pairs)]
         case "smethod": return [.sunan, .s(.method)]
         case "ssearch": return [.sunan, .s(.search(query: "رزق"))]

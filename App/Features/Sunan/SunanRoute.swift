@@ -17,8 +17,10 @@ enum SunanRoute: Hashable {
     case all
     /// «اسأل عن موقفك» — the AI points at the closest state (platform /api/sunan/ask); app only
     case ask(question: String = "")
-    /// /sunan/macro
+    /// /sunan/macro — the categories of «السنن الكبرى» (owner 2026-11-25)
     case macro
+    /// One category of «السنن الكبرى» and its rules — app only
+    case macroDomain(String)
     /// /sunan/pairs
     case pairs
     /// /sunan/method
@@ -51,6 +53,7 @@ struct SunanRouteView: View {
         case .ask(let q): SunanAskView(initialQuestion: q)
         case .all: SunanAllView()
         case .macro: SunanMacroView()
+        case .macroDomain(let d): SunanMacroDomainView(domain: d)
         case .pairs: SunanPairsView()
         case .method: SunanMethodView()
         case .day: SunanDayView()

@@ -63,6 +63,7 @@
 37c-sunan-deed-cat|-onboarded YES -route sdeedcat
 38-sunan-deed|-onboarded YES -route sdeed
 39-sunan-macro|-onboarded YES -route smacro
+39b-sunan-macro-domain|-onboarded YES -route smacrod
 40-sunan-pairs|-onboarded YES -route spairs
 41-sunan-method|-onboarded YES -route smethod
 42-sunan-search|-onboarded YES -route ssearch
