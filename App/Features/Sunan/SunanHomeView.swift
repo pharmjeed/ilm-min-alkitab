@@ -61,13 +61,7 @@ struct SunanHomeView: View {
                             .padding(.top, 32)
                         }
 
-                        SunanHeading(text: "ماذا تحتاج الآن؟", size: 24).padding(.top, 32).id("domains")
-                        LazyVStack(spacing: 12) {
-                            ForEach(ix.domains) { d in
-                                SunanLink(.domain(d.id)) { DomainCard(domain: d) }
-                            }
-                        }
-                        .padding(.top, 16)
+                        DomainsEntry(domains: ix.domains).padding(.top, 32).id("domains")
 
                         SunanHeading(text: "وفي الأصول", size: 24).padding(.top, 40)
                         VStack(spacing: 12) {
@@ -135,7 +129,63 @@ private struct WayCard: View {
     }
 }
 
-/// One domain of «ماذا تحتاج الآن؟» — its number, title, «وصف المجال», and its needs' count.
+/// «ماذا تحتاج الآن؟» the way «ماذا تشعر الآن؟» is shown in the names section (owner 2026-11-25): the question in a
+/// card, then the domains as a rail to swipe sideways, with dots under it.
+private struct DomainsEntry: View {
+    @Environment(\.colorScheme) private var scheme
+    let domains: [SunanDomain]
+    @State private var active: Int?
+
+    var body: some View {
+        let t = Theme(scheme)
+        VStack(spacing: 0) {
+            Text("ماذا تحتاج الآن؟")
+                .font(AppFont.serif(32)).foregroundStyle(t.cream)
+                .multilineTextAlignment(.center)
+            Text("اختر حاجتك، ونصل بك إلى أسبابها من الكتاب والسنة")
+                .font(AppFont.sans(14)).foregroundStyle(t.muted)
+                .multilineTextAlignment(.center).padding(.top, 8)
+            VStack(spacing: 16) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 12) {
+                        ForEach(domains) { d in
+                            SunanLink(.domain(d.id)) { DomainCard(domain: d) }
+                                .containerRelativeFrame(.horizontal) { w, _ in min(320, w * 0.78) }
+                                .frame(maxHeight: .infinity)
+                                .id(d.id)
+                        }
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .scrollTargetLayout()
+                    .padding(.vertical, 4)
+                }
+                .scrollTargetBehavior(.viewAligned)
+                .scrollPosition(id: $active)
+                .padding(.horizontal, -20)
+                .contentMargins(.horizontal, 20, for: .scrollContent)
+
+                HStack(spacing: 6) {
+                    ForEach(domains) { d in
+                        let on = (active ?? domains.first?.id) == d.id
+                        Capsule()
+                            .fill(on ? t.gold : t.line)
+                            .frame(width: on ? 20 : 6, height: 6)
+                            .onTapGesture { withAnimation { active = d.id } }
+                    }
+                }
+                .animation(.easeOut(duration: 0.2), value: active)
+            }
+            .padding(.top, 24)
+        }
+        .padding(.horizontal, 20).padding(.vertical, 28)
+        .frame(maxWidth: .infinity)
+        .background(t.surface, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(t.line, lineWidth: 1))
+    }
+}
+
+/// One domain of «ماذا تحتاج الآن؟» — its number, title, «وصف المجال», and its needs' count (like a door of
+/// «ماذا تشعر الآن؟», with the gold edge at its end).
 private struct DomainCard: View {
     @Environment(\.colorScheme) private var scheme
     let domain: SunanDomain
@@ -145,23 +195,33 @@ private struct DomainCard: View {
             Text("\(domain.id)").font(AppFont.sans(16)).foregroundStyle(t.gold)
                 .frame(width: 36, height: 36)
                 .overlay(Circle().stroke(t.line, lineWidth: 1))
-            VStack(alignment: .leading, spacing: 6) {
-                Text(domain.title).font(AppFont.serif(24)).foregroundStyle(t.cream)
-                if let d = domain.description, !d.isEmpty {
-                    Text(d).font(AppFont.sans(14)).foregroundStyle(t.muted).lineSpacing(6)
-                        .fixedSize(horizontal: false, vertical: true)
+            Text(domain.title).font(AppFont.serif(26)).foregroundStyle(t.cream)
+            if let d = domain.description, !d.isEmpty {
+                Text(d).font(AppFont.sans(16)).foregroundStyle(t.muted).lineSpacing(5)
+            }
+            Spacer(minLength: 0)
+            VStack(spacing: 12) {
+                Rectangle().fill(t.line).frame(height: 1)
+                HStack {
+                    Text(SunanText.count(domain.needIds.count, SunanText.needs))
+                    Spacer(minLength: 8)
+                    Text("افتح ←")
                 }
+                .font(AppFont.sans(14)).foregroundStyle(t.gold)
             }
-            Rectangle().fill(t.line).frame(height: 1)
-            HStack {
-                Text(SunanText.count(domain.needIds.count, SunanText.needs))
-                Spacer(minLength: 8)
-                Text("افتح ←")
-            }
-            .font(AppFont.sans(14)).foregroundStyle(t.gold)
         }
         .multilineTextAlignment(.leading)
-        .sunanRow(t, border: t.gold.opacity(0.35), h: 20, v: 20, radius: 16)
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(t.surface, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(alignment: .trailing) {
+            LinearGradient(colors: [t.gold, t.gold.opacity(0)], startPoint: .top, endPoint: .bottom)
+                .frame(width: 3)
+                .clipShape(RoundedRectangle(cornerRadius: 1.5))
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(t.gold.opacity(0.35), lineWidth: 1))
+        .contentShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 

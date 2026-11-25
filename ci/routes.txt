@@ -37,6 +37,7 @@
 18-ask|-onboarded YES -route ask
 19-savesheet|-onboarded YES -route savesheet
 04b-sunan-domains|-onboarded YES -route sunandomains
+04c-sunan-domains-light|-onboarded YES -route sunandomains -appearance light
 30-sunan-domain|-onboarded YES -route sdomain
 31-sunan-need|-onboarded YES -route sneed
 32-sunan-state|-onboarded YES -route sstate
