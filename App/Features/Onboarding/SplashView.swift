@@ -29,7 +29,8 @@ struct SplashView: View {
                     Circle().fill(t.gold).frame(width: 9, height: 9).scaleEffect(dot)
                 }
                 .frame(width: 120, height: 120)
-                Text("علم من الكتاب").font(AppFont.serif(34)).foregroundStyle(t.gold)
+                // owner 2026-11-25: the name larger and in black (the cream of the dark mode)
+                Text("علم من الكتاب").font(AppFont.serif(46)).foregroundStyle(t.cream)
                     .opacity(nameIn ? 1 : 0)
                     .offset(y: nameIn ? 0 : 10)
             }
