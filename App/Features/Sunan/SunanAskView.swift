@@ -238,11 +238,11 @@ private struct SunanAskCard: View {
                     .contentShape(RoundedRectangle(cornerRadius: 16))
                 }
             }
-            HStack(spacing: 0) {
-                Text("ليست حالك؟ صِفها بكلمات أخرى، أو ")
+            // a trailing space is dropped between the two pieces: the gap is the stack's spacing
+            HStack(spacing: 4) {
+                Text("ليست حالك؟ صِفها بكلمات أخرى، أو")
                 Button { nav.open(dest: .sunan) } label: { Text("تصفّح الحاجات").foregroundStyle(t.gold) }
                     .buttonStyle(.plain)
-                Text(".")
             }
             .font(AppFont.sans(14)).foregroundStyle(t.muted)
         }
