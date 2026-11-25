@@ -50,9 +50,8 @@ struct SunanHomeView: View {
             ScrollView {
                 if let ix = repo.index {
                     VStack(alignment: .leading, spacing: 0) {
-                        header(t, ix.stats) {
-                            withAnimation(.easeInOut(duration: 0.4)) { proxy.scrollTo("domains", anchor: .top) }
-                        }
+                        // owner 2026-11-25: «تصفّح السنن» opens «كل السنن» (every sunnah classified, like «كل الأسماء»)
+                        header(t, ix.stats) { nav.open(SunanRoute.all) }
 
                         DomainsEntry(domains: ix.domains).padding(.top, 32).id("domains")
 
@@ -114,7 +113,7 @@ struct SunanHomeView: View {
             .background(t.bg.opacity(0.4), in: Capsule())
             .overlay(Capsule().stroke(t.line, lineWidth: 1))
             .padding(.top, 28)
-            // owner 2026-11-25: two gold buttons side by side, as in the names section — «تصفّح السنن» goes down to
+            // owner 2026-11-25: two gold buttons side by side, as in the names section — «تصفّح السنن» opens «كل السنن»
             // «ماذا تحتاج الآن؟», «اسأل عن موقفك» opens the AI page (with what was typed, if anything) — owner
             // 2026-11-25: «اجعله بالذكاء الاصطناعي مثل قسم الأسماء ويرشد إلى الحالة الأقرب»
             HStack(spacing: 12) {

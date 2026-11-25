@@ -183,6 +183,7 @@ enum Route {
         case "ask": return [.names, .n(.ask())]
         // sunan section (ci/routes.txt `s…`)
         case "sask": return [.sunan, .s(.ask())]
+        case "sall": return [.sunan, .s(.all)]
         case "sask2": return [.sunan, .s(.ask(question: "أواجه مشكلة كبيرة"))]
         case "sdomain": return [.sunan, .s(.domain(1))]
         case "sneed": return [.sunan, .s(.domain(1)), .s(.need(1))]

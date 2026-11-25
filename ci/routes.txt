@@ -39,6 +39,7 @@
 18-ask|-onboarded YES -route ask
 18b-sunan-ask|-onboarded YES -route sask
 18c-sunan-ask-answer|-onboarded YES -route sask2|14
+18d-sunan-all|-onboarded YES -route sall
 19-savesheet|-onboarded YES -route savesheet
 04b-sunan-domains|-onboarded YES -route sunandomains
 04c-sunan-domains-light|-onboarded YES -route sunandomains -appearance light
