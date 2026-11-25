@@ -38,10 +38,15 @@ struct SunanSearchView: View {
                 if !q.isEmpty && !tooShort && hits.isEmpty {
                     VStack(spacing: 8) {
                         Text("لا أحوال تطابق «\(q)».").font(AppFont.sans(16)).foregroundStyle(t.cream)
-                        Text("جرّب كلمة أقصر أو أعمّ، أو ابدأ من الحاجات.").font(AppFont.sans(14)).foregroundStyle(t.muted)
-                        Button { nav.open(dest: .sunan) } label: { Text("ماذا تحتاج الآن؟") }
-                            .buttonStyle(SecondaryPill(compact: true))
-                            .padding(.top, 8)
+                        Text("جرّب كلمة أقصر أو أعمّ، أو اسأل عن موقفك بكلامك، أو ابدأ من الحاجات.").font(AppFont.sans(14)).foregroundStyle(t.muted)
+                        HStack(spacing: 8) {
+                            // owner 2026-11-25: words that match nothing go to the AI, which finds the closest state
+                            Button { nav.open(.ask(question: q)) } label: { Text("اسأل عن موقفك") }
+                                .buttonStyle(PrimaryPill(compact: true))
+                            Button { nav.open(dest: .sunan) } label: { Text("ماذا تحتاج الآن؟") }
+                                .buttonStyle(SecondaryPill(compact: true))
+                        }
+                        .padding(.top, 8)
                     }
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)

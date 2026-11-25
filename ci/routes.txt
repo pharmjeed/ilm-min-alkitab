@@ -35,6 +35,8 @@
 17-anfus|-onboarded YES -route anfus
 17b-anfus-group|-onboarded YES -route anfusgroup
 18-ask|-onboarded YES -route ask
+18b-sunan-ask|-onboarded YES -route sask
+18c-sunan-ask-answer|-onboarded YES -route sask2|14
 19-savesheet|-onboarded YES -route savesheet
 04b-sunan-domains|-onboarded YES -route sunandomains
 04c-sunan-domains-light|-onboarded YES -route sunandomains -appearance light

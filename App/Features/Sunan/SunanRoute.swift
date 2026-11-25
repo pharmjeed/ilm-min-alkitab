@@ -13,6 +13,8 @@ enum SunanRoute: Hashable {
     case item(fp: String, stateId: Int? = nil)
     /// /sunan/search?q=…
     case search(query: String = "")
+    /// «اسأل عن موقفك» — the AI points at the closest state (platform /api/sunan/ask); app only
+    case ask(question: String = "")
     /// /sunan/macro
     case macro
     /// /sunan/pairs
@@ -44,6 +46,7 @@ struct SunanRouteView: View {
         case .state(let id): SunanStateView(stateId: id)
         case .item(let fp, let stateId): SunanItemPageView(fp: fp, stateId: stateId)
         case .search(let q): SunanSearchView(initialQuery: q)
+        case .ask(let q): SunanAskView(initialQuestion: q)
         case .macro: SunanMacroView()
         case .pairs: SunanPairsView()
         case .method: SunanMethodView()

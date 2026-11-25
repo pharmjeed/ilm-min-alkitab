@@ -182,6 +182,8 @@ enum Route {
             return [.names, .n(.feel), .n(.anfus()), .n(.anfusGroup(slug))]
         case "ask": return [.names, .n(.ask())]
         // sunan section (ci/routes.txt `s…`)
+        case "sask": return [.sunan, .s(.ask())]
+        case "sask2": return [.sunan, .s(.ask(question: "أواجه مشكلة كبيرة"))]
         case "sdomain": return [.sunan, .s(.domain(1))]
         case "sneed": return [.sunan, .s(.domain(1)), .s(.need(1))]
         case "sstate": return [.sunan, .s(.domain(1)), .s(.need(1)), .s(.state(1))]

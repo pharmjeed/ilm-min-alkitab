@@ -101,7 +101,8 @@ struct SunanHomeView: View {
             SunanSearchField(text: $query, button: false) { ask() }
                 .padding(.top, 24)
             // owner 2026-11-25: two gold buttons side by side, as in the names section — «تصفّح السنن» goes down to
-            // «ماذا تحتاج الآن؟», «اسأل عن موقفك» searches what was typed (or opens the search page to type it)
+            // «ماذا تحتاج الآن؟», «اسأل عن موقفك» opens the AI page (with what was typed, if anything) — owner
+            // 2026-11-25: «اجعله بالذكاء الاصطناعي مثل قسم الأسماء ويرشد إلى الحالة الأقرب»
             HStack(spacing: 12) {
                 Button(action: browse) { Text("تصفّح السنن") }.buttonStyle(PrimaryPill())
                 Button(action: ask) { Text("اسأل عن موقفك") }.buttonStyle(PrimaryPill())
@@ -114,7 +115,7 @@ struct SunanHomeView: View {
     }
 
     private func ask() {
-        nav.open(.search(query: query.trimmingCharacters(in: .whitespacesAndNewlines)))
+        nav.open(.ask(question: query.trimmingCharacters(in: .whitespacesAndNewlines)))
     }
 }
 
