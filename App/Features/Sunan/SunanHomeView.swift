@@ -50,7 +50,9 @@ struct SunanHomeView: View {
             ScrollView {
                 if let ix = repo.index {
                     VStack(alignment: .leading, spacing: 0) {
-                        header(t, ix.stats)
+                        header(t, ix.stats) {
+                            withAnimation(.easeInOut(duration: 0.4)) { proxy.scrollTo("domains", anchor: .top) }
+                        }
 
                         if !ways.isEmpty {
                             VStack(spacing: 12) {
@@ -84,7 +86,7 @@ struct SunanHomeView: View {
         .sunanScreen(SunanText.kicker, t)
     }
 
-    private func header(_ t: Theme, _ st: SunanStats) -> some View {
+    private func header(_ t: Theme, _ st: SunanStats, browse: @escaping () -> Void) -> some View {
         VStack(spacing: 0) {
             // owner 2026-11-24: the title «لكل نتيجةٍ سبب» removed; 2026-11-25: the kicker removed too, and the lead
             // moved under the verses
@@ -95,12 +97,23 @@ struct SunanHomeView: View {
                 .padding(.top, 4)
             Text(SunanText.lead).font(AppFont.sans(16)).foregroundStyle(t.cream.opacity(0.9)).lineSpacing(9)
                 .padding(.top, 16)
-            SunanSearchField(text: $query) { nav.open(.search(query: query.trimmingCharacters(in: .whitespacesAndNewlines))) }
+            SunanSearchField(text: $query, button: false) { ask() }
                 .padding(.top, 24)
+            // owner 2026-11-25: two gold buttons side by side, as in the names section — «تصفّح السنن» goes down to
+            // «ماذا تحتاج الآن؟», «اسأل عن موقفك» searches what was typed (or opens the search page to type it)
+            HStack(spacing: 12) {
+                Button(action: browse) { Text("تصفّح السنن") }.buttonStyle(PrimaryPill())
+                Button(action: ask) { Text("اسأل عن موقفك") }.buttonStyle(PrimaryPill())
+            }
+            .padding(.top, 16)
         }
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
         .sunanHeader(t, padding: 20)
+    }
+
+    private func ask() {
+        nav.open(.search(query: query.trimmingCharacters(in: .whitespacesAndNewlines)))
     }
 }
 

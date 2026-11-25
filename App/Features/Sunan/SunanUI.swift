@@ -355,6 +355,8 @@ struct SunanBackLink: View {
 struct SunanSearchField: View {
     @Environment(\.colorScheme) private var scheme
     @Binding var text: String
+    /// false on the section home, where «اسأل عن موقفك» beside «تصفّح السنن» takes the place of «ابحث» (owner 2026-11-25).
+    var button = true
     let submit: () -> Void
     var body: some View {
         let t = Theme(scheme)
@@ -373,8 +375,10 @@ struct SunanSearchField: View {
             .padding(.horizontal, 16).frame(minHeight: 46)
             .background(t.bg.opacity(0.4), in: Capsule())
             .overlay(Capsule().stroke(t.line, lineWidth: 1))
-            Button(action: submit) { Text("ابحث").frame(maxWidth: .infinity) }
-                .buttonStyle(PrimaryPill())
+            if button {
+                Button(action: submit) { Text("ابحث").frame(maxWidth: .infinity) }
+                    .buttonStyle(PrimaryPill())
+            }
         }
     }
 }
