@@ -169,7 +169,7 @@ enum Route {
         case "nameinsit": return [.names, .n(.feel), .n(.door(1)), .n(.situation(1)), .n(.nameInSituation(name: 99, situation: 1))]
         case "name20": return [.names, .n(.name(20))]
         case "name20v", "savesheet", "namevshare": return [.names, .n(.name(20, focus: 1))]
-        case "name20w", "namewshare": return [.names, .n(.name(20, tab: .sunnah, focus: 1))]
+        case "name20w", "namewshare", "namewshareend": return [.names, .n(.name(20, tab: .sunnah, focus: 1))]
         case "name20pray": return [.names, .n(.name(20, tab: .pray))]
         case "name20sunnah": return [.names, .n(.name(20, tab: .sunnah))]
         case "name1": return [.names, .n(.name(1))]

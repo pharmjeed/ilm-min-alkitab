@@ -167,6 +167,8 @@ struct ShareCardSheet: View {
                 }
                 .padding(20)
             }
+            // CI (`…shareend`): the end of a long card, to check its explanations
+            .defaultScrollAnchor(Route.isCI && Route.arg.hasSuffix("shareend") ? .bottom : .top)
             .background(t.bg.ignoresSafeArea())
             .navigationTitle("مشاركة")
             .navigationBarTitleDisplayMode(.inline)

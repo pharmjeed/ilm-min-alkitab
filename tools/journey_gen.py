@@ -1,4 +1,5 @@
-"""Owner's «رحلة الحسنى» map (bundler-saved HTML template) → Swift data for the app's names-section introduction.
+"""(--json: optional 4th argument writes the website's copy.)
+Owner's «رحلة الحسنى» map (bundler-saved HTML template) → Swift data for the app's names-section introduction.
 
 Texts are taken from the owner's file as written (digits shown as Western digits, as everywhere in the app).
 Every verse is checked against the platform's quran.json and must match it letter for letter; consecutive verses
@@ -150,3 +151,11 @@ for s in stations:
     print(" ", s["n"], s["verb"], "·", s["name"], "|", s["count"], "|", len(s["verses"]), "verses", "| side" if s["side"] else "")
 print("end:", end_kicker, end_title, "|", summary, "|", closing.replace("\n", " / "))
 print("foot:", foot)
+
+# optional: the same journey as JSON for the website (platform data/journeys/husna.json)
+if len(sys.argv) > 4:
+    json.dump({"slug": "husna", "title": "رحلة الحسنى", "lead": lead, "stations": stations, "endKicker": end_kicker,
+               "endTitle": end_title, "endText": end_text, "summaryTitle": summary_head, "summary": summary,
+               "closing": closing, "footnote": foot},
+              open(sys.argv[4], "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    print("json →", sys.argv[4])

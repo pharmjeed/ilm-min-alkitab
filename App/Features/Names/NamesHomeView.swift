@@ -6,10 +6,9 @@ import SwiftUI
 struct NamesHomeView: View {
     @Environment(\.colorScheme) private var scheme
     private let repo = NamesRepo.shared
-    /// «رحلة الحسنى» — opened from «ما أهمية الأسماء الحسنى؟» at the top of the section (owner 2026-11-25).
-    @State private var showIntro = false
-    /// «رحلة باسم ربك» opened straight from its line (otherwise it is offered at the end of «رحلة الحسنى»).
-    @State private var bism = false
+    /// The journey on screen: «رحلة الحسنى» from «ما أهمية الأسماء الحسنى؟» at the top of the section (owner 2026-11-25),
+    /// or «رحلة باسم ربك» straight from its line (otherwise it is offered at the end of «رحلة الحسنى»).
+    @State private var journey: JourneyKind?
     @AppStorage(NamesIntro.seenKey) private var introSeen = false
 
     var body: some View {
@@ -19,11 +18,9 @@ struct NamesHomeView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     IntroInvite(seen: introSeen || NamesIntro.ciSeen, lead: Journey.husna.lead) {
                         introSeen = true
-                        bism = false
-                        showIntro = true
+                        journey = .husna
                     } bism: {
-                        bism = true
-                        showIntro = true
+                        journey = .bism
                     } later: {
                         withAnimation(.easeInOut(duration: 0.25)) { introSeen = true }
                     }
@@ -47,11 +44,11 @@ struct NamesHomeView: View {
         .onAppear {
             guard NamesIntro.ciFocus != nil, !NamesIntro.ciOpened else { return }
             NamesIntro.ciOpened = true
-            bism = NamesIntro.ciBism
-            showIntro = true
+            journey = NamesIntro.ciBism ? .bism : .husna
         }
-        .fullScreenCover(isPresented: $showIntro) {
-            JourneyIntroView(journey: bism ? .bism : .husna, next: bism ? nil : .bism, focus: NamesIntro.ciFocus ?? 0)
+        .fullScreenCover(item: $journey) { kind in
+            JourneyIntroView(journey: kind == .bism ? .bism : .husna, next: kind == .bism ? nil : .bism,
+                             focus: NamesIntro.ciFocus ?? 0)
                 .environment(\.layoutDirection, .rightToLeft)
         }
     }

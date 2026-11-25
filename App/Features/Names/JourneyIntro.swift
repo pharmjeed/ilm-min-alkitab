@@ -45,6 +45,12 @@ struct JourneyVerse: Identifiable {
     var id: String { ref }
 }
 
+/// Which journey a cover shows.
+enum JourneyKind: String, Identifiable {
+    case husna, bism
+    var id: String { rawValue }
+}
+
 enum NamesIntro {
     /// Set once the visitor started the journey or chose «ليس الآن»: the invitation card becomes a small line.
     static let seenKey = "namesIntroSeen"

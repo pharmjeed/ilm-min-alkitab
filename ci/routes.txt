@@ -56,6 +56,7 @@
 33e-share-card-light|-onboarded YES -route sitemshare -appearance light|8
 33f-share-card-witness|-onboarded YES -route namewshare|8
 33g-share-card-verse|-onboarded YES -route namevshare|8
+33h-share-card-witness-end|-onboarded YES -route namewshareend|8
 33d-sunan-savesheet|-onboarded YES -route ssavesheet
 34-sunan-itemq|-onboarded YES -route sitemq
 34b-sunan-itemq-text|-onboarded YES -route sitemqtext

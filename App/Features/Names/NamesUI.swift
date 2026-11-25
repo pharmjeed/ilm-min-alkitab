@@ -295,7 +295,7 @@ struct SharePill: View {
             }
             .onAppear {
                 // CI screenshot of the card page (ci/routes.txt `sitemshare`, `namewshare`, `namevshare`)
-                if Route.isCI, Route.arg == ci, !ShareCardCI.shown { ShareCardCI.shown = true; showCard = true }
+                if Route.isCI, Route.arg.hasPrefix(ci), !ShareCardCI.shown { ShareCardCI.shown = true; showCard = true }
             }
         } else {
             ShareLink(item: url, subject: Text(title), message: Text(text)) {

@@ -4,7 +4,7 @@ The second journey of the names section (owner 2026-11-25), after «رحلة ا�
 as written (digits shown as Western digits, as everywhere in the app). Every verse is checked against the platform's
 quran.json and must match it letter for letter.
 
-usage: python journey_bism_gen.py <template.html> <quran.json> <out.swift>
+usage: python journey_bism_gen.py <template.html> <quran.json> <out.swift> [<out.json>]  (--json: the website's copy)
 """
 import sys, re, json, html
 
@@ -133,3 +133,16 @@ print("stations", len(stations), "verses", total, "| lead:", lead)
 for s in stations:
     print(" ", s["n"], s["verb"], "|", s["title"], "|", s["count"], "|", len(s["verses"]), "verses", "| side" if s["side"] else "")
 print(" end:", end_kicker, "|", end_title, "|", end_ref, "| summary:", summary, "| foot:", foot)
+
+# optional: the same journey as JSON for the website (platform data/journeys/bism.json)
+if len(sys.argv) > 4:
+    for s in stations:
+        s["name"] = ""
+        for v in s["verses"]:
+            v.update(label=None, note=None)
+    json.dump({"slug": "bism", "title": title, "lead": lead, "stations": stations, "endKicker": end_kicker,
+               "endTitle": end_title, "endText": end_text, "summaryTitle": summary_head, "summary": summary,
+               "closing": "", "footnote": foot,
+               "endVerse": {"label": None, "text": end_vt, "ref": end_ref, "note": None}},
+              open(sys.argv[4], "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    print("json →", sys.argv[4])
