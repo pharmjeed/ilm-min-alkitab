@@ -47,6 +47,8 @@
 33-sunan-item|-onboarded YES -route sitem
 33b-sunan-item-text|-onboarded YES -route sitemtext
 33c-sunan-item-more|-onboarded YES -route sitemmore
+33d-share-card|-onboarded YES -route sitemshare|8
+33e-share-card-light|-onboarded YES -route sitemshare -appearance light|8
 33d-sunan-savesheet|-onboarded YES -route ssavesheet
 34-sunan-itemq|-onboarded YES -route sitemq
 34b-sunan-itemq-text|-onboarded YES -route sitemqtext

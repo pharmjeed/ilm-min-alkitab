@@ -187,7 +187,7 @@ enum Route {
         case "sdomain": return [.sunan, .s(.domain(1))]
         case "sneed": return [.sunan, .s(.domain(1)), .s(.need(1))]
         case "sstate": return [.sunan, .s(.domain(1)), .s(.need(1)), .s(.state(1))]
-        case "sitem", "sitemtext", "sitemmore", "ssavesheet":
+        case "sitem", "sitemtext", "sitemmore", "ssavesheet", "sitemshare":
             return [.sunan, .s(.domain(1)), .s(.need(1)), .s(.state(1)), .s(.item(fp: "2c3521d318c6"))]
         case "sitemq", "sitemqtext":
             return [.sunan, .s(.domain(1)), .s(.need(1)), .s(.state(3)), .s(.item(fp: "b864df3937b5"))]

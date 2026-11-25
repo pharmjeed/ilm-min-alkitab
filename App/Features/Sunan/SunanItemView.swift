@@ -114,7 +114,8 @@ private struct SunanItemContent: View {
             FlowLayout(spacing: 8, lineSpacing: 8) {
                 FavoritePill(key: .sunnah(item.fp), item: item.easy)
                 CopyPill(label: "نسخ", text: "\(item.easy) (\(item.ref))\n\(url.absoluteString)")
-                SharePill(title: "\(item.easy) — \(SunanText.title)", text: "\(item.easy) (\(item.ref))", url: url)
+                SharePill(title: "\(item.easy) — \(SunanText.title)", text: "\(item.easy) (\(item.ref))", url: url,
+                          card: SunanText.shareCard(item, state: state))
             }
             .padding(.top, 16)
         }

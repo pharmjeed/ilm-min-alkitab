@@ -199,7 +199,8 @@ struct VerseCardView: View {
             FlowLayout(spacing: 8, lineSpacing: 8) {
                 FavoritePill(key: .position(name: nameId, surah: v.s, ayah: v.a), item: "\(nameLabel) — \(v.surah) \(v.a)")
                 CopyPill(label: "نسخ الآية", text: copyText)
-                SharePill(title: "\(nameLabel) — \(v.surah) \(v.a)", text: "﴿\(v.text)﴾ \(ref)", url: link)
+                SharePill(title: "\(nameLabel) — \(v.surah) \(v.a)", text: "﴿\(v.text)﴾ \(ref)", url: link,
+                          card: ShareCard(kicker: nameLabel, scripture: "﴿\(v.text)﴾", source: ref))
                 if let inside {
                     NamesLink(inside) { ActionPill { Text("داخل صفحة الاسم") } }
                 }
@@ -313,7 +314,8 @@ struct WitnessCardView: View {
             Rectangle().fill(t.line).frame(height: 1).padding(.top, 20)
             FlowLayout(spacing: 8, lineSpacing: 8) {
                 CopyPill(label: "نسخ الحديث", text: copyText)
-                SharePill(title: "\(nameLabel) — \(source)", text: "«\(String(w.text.prefix(280)))» \(doc)", url: link)
+                SharePill(title: "\(nameLabel) — \(source)", text: "«\(String(w.text.prefix(280)))» \(doc)", url: link,
+                          card: ShareCard(kicker: nameLabel, scripture: "«\(w.text)»", source: doc + judgment))
                 if let inside {
                     NamesLink(inside) { ActionPill { Text("داخل صفحة الاسم") } }
                 }

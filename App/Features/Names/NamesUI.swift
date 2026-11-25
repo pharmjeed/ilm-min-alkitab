@@ -273,18 +273,38 @@ struct CrumbsView: View {
 
 // MARK: - Share / copy / save
 
-/// The website's share buttons (Web Share with title, text and the page URL).
+/// The website's share buttons (Web Share with title, text and the page URL). With a `card` (owner 2026-11-25) it
+/// opens the designed card with the whole text first (ShareCard.swift).
 struct SharePill: View {
     let title: String
     let text: String
     let url: URL
+    var card: ShareCard? = nil
+    @State private var showCard = false
     var body: some View {
-        ShareLink(item: url, subject: Text(title), message: Text(text)) {
-            ActionPill { Label { Text("مشاركة") } icon: { Image(systemName: "square.and.arrow.up") } }
+        if let card {
+            Button { showCard = true } label: {
+                ActionPill { Label { Text("مشاركة") } icon: { Image(systemName: "square.and.arrow.up") } }
+            }
+            .buttonStyle(.plain)
+            .sheet(isPresented: $showCard) {
+                ShareCardSheet(card: card, title: title, text: text, url: url)
+                    .environment(\.layoutDirection, .rightToLeft)
+            }
+            .onAppear {
+                // CI screenshot of the card page (ci/routes.txt `sitemshare`)
+                if Route.isCI, Route.arg == "sitemshare", !ShareCardCI.shown { ShareCardCI.shown = true; showCard = true }
+            }
+        } else {
+            ShareLink(item: url, subject: Text(title), message: Text(text)) {
+                ActionPill { Label { Text("مشاركة") } icon: { Image(systemName: "square.and.arrow.up") } }
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
 }
+
+enum ShareCardCI { static var shown = false }
 
 /// The website's copy buttons: the text with `{url}` replaced, then «تم النسخ» for a moment.
 struct CopyPill: View {

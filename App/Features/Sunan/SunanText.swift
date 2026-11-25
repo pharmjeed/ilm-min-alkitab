@@ -243,3 +243,30 @@ enum SunanText {
         return out
     }
 }
+
+extension SunanText {
+    /// «مشاركة» of a sunnah (owner 2026-11-25): its state, «السبب ← النتيجة», the WHOLE text (each verse between
+    /// ﴿ ﴾ with its number when there are several, or the hadith between « »), and its source line.
+    static func shareCard(_ item: SunnahItem, state: SunanState) -> ShareCard {
+        let dark = Theme(.dark)
+        var scripture: String?
+        if let q = item.quran {
+            let ayat = quranAyat(q.text, q.hl)
+            scripture = ayat.map { a in
+                "﴿" + a.runs.map(\.t).joined() + "﴾" + (a.a > 0 && ayat.count > 1 ? " (\(a.a))" : "")
+            }
+            .joined(separator: " ")
+        } else if let segs = item.text, !segs.isEmpty {
+            let s = segs.map { seg -> String in
+                switch seg {
+                case .plain(let x): return x
+                case .run(let x, _): return x
+                }
+            }
+            .joined()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !s.isEmpty { scripture = "«\(s)»" }
+        }
+        return ShareCard(kicker: state.title, headline: easy(item.easy, dark), scripture: scripture, source: sourceLine(item))
+    }
+}
