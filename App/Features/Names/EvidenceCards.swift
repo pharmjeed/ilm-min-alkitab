@@ -315,7 +315,7 @@ struct WitnessCardView: View {
             FlowLayout(spacing: 8, lineSpacing: 8) {
                 CopyPill(label: "نسخ الحديث", text: copyText)
                 SharePill(title: "\(nameLabel) — \(source)", text: "«\(String(w.text.prefix(280)))» \(doc)", url: link,
-                          card: ShareCard(kicker: nameLabel, scripture: "«\(w.text)»", source: doc + judgment))
+                          card: ShareCard(kicker: nameLabel, scripture: ShareCard.quoted(w.text), source: doc + judgment))
                 if let inside {
                     NamesLink(inside) { ActionPill { Text("داخل صفحة الاسم") } }
                 }

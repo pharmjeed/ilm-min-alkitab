@@ -13,6 +13,12 @@ struct ShareCard {
     /// The whole scripture text as the page shows it.
     var scripture: String? = nil
     var source: String? = nil
+
+    /// A hadith between « », unless its text already opens with one (many do).
+    static func quoted(_ s: String) -> String {
+        let x = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        return x.hasPrefix("«") ? x : "«\(x)»"
+    }
 }
 
 /// The card itself, always in the brand's dark look (night, gold, cream) and 360 points wide.

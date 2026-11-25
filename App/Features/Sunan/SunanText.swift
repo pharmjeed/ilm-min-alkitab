@@ -267,7 +267,7 @@ extension SunanText {
             }
             .joined()
             .trimmingCharacters(in: .whitespacesAndNewlines)
-            if !s.isEmpty { scripture = "«\(s)»" }
+            if !s.isEmpty { scripture = ShareCard.quoted(s) }
         }
         return ShareCard(kicker: state.title, headline: easy(item.easy, dark), scripture: scripture, source: sourceLine(item))
     }
