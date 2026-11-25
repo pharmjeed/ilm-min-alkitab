@@ -26,7 +26,7 @@ struct SunanHomeView: View {
     private static let more: [MoreLink] = [
         MoreLink(route: .macro, title: "السنن الكبرى", lead: "القوانين الجامعة: سببٌ ونتيجته كما تقرّرت في القرآن والسنة."),
         MoreLink(route: .pairs, title: "السنن المتقابلة", lead: "كل سنّةٍ وما يقابلها في المآل: سببٌ يوصل إلى الخير، وضدّه يوصل إلى ضدّه."),
-        MoreLink(route: .method, title: "المنهج والحدود", lead: "كيف جُمعت هذه السنن، وما حدود الاستنباط فيها."),
+        // owner 2026-11-25: «المنهج والحدود» hidden from the section home (its page stays, reachable from elsewhere)
     ]
 
     private var ways: [Way] {
