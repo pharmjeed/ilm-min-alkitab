@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// /sunan — app/sunan/page.tsx: header with the search → «برنامج اليوم والليلة» · «ماذا يجلب هذا العمل؟» →
+/// /sunan — app/sunan/page.tsx: header with the search →
 /// «ماذا تحتاج الآن؟» (every domain of the pack, in order) → «وفي الأصول».
 struct SunanHomeView: View {
     @Environment(\.colorScheme) private var scheme
@@ -54,6 +54,9 @@ struct SunanHomeView: View {
                             withAnimation(.easeInOut(duration: 0.4)) { proxy.scrollTo("domains", anchor: .top) }
                         }
 
+                        DomainsEntry(domains: ix.domains).padding(.top, 32).id("domains")
+
+                        // owner 2026-11-25: «برنامج اليوم والليلة» and «ماذا يجلب هذا العمل؟» under «ماذا تحتاج الآن؟»
                         if !ways.isEmpty {
                             VStack(spacing: 12) {
                                 ForEach(ways) { w in
@@ -62,8 +65,6 @@ struct SunanHomeView: View {
                             }
                             .padding(.top, 32)
                         }
-
-                        DomainsEntry(domains: ix.domains).padding(.top, 32).id("domains")
 
                         SunanHeading(text: "وفي الأصول", size: 24).padding(.top, 40)
                         VStack(spacing: 12) {
