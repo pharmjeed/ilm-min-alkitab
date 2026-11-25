@@ -99,9 +99,8 @@ struct SunanHomeView: View {
             // owner 2026-11-24: the counts line gave way to the verses (whole, as in quran.json — الكهف 84-85,
             // joined with « * » like consecutive verses in content.json)
             Text(SunanText.sababVerse).font(AppFont.amiri(26)).foregroundStyle(t.gold).lineSpacing(8)
-            Text(SunanText.sababRef).font(AppFont.sans(12)).foregroundStyle(t.muted)
-                .padding(.top, 6)
-            Text(SunanText.lead).font(AppFont.serif(26)).foregroundStyle(t.cream).lineSpacing(6)
+            // owner 2026-11-25: the reference under the verses removed, and the line under them shortened
+            Text(SunanText.leadShort).font(AppFont.serif(26)).foregroundStyle(t.cream).lineSpacing(6)
                 .padding(.top, 16)
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(t.muted)

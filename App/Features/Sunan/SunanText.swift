@@ -5,6 +5,8 @@ enum SunanText {
     static let title = "السنن والأسباب"
     static let kicker = "سر علم السنن والأسباب"
     static let lead = "جعل الله لكل شيءٍ سببًا، وبيّن في كتابه وعلى لسان نبيّه ﷺ: إذا فعلتَ كذا كان لك كذا."
+    /// The section home under the verses (owner 2026-11-25: «اختصر»).
+    static let leadShort = "إذا فعلتَ كذا، كان لك كذا."
     /// الكهف 84, verbatim from the platform's data/quran.json (never shortened).
     static let sababVerse = "﴿إِنَّا مَكَّنَّا لَهُ فِي الْأَرْضِ وَآتَيْنَاهُ مِنْ كُلِّ شَيْءٍ سَبَبًا * فَأَتْبَعَ سَبَبًا﴾"
     static let sababRef = "[الكهف: 84-85]"
