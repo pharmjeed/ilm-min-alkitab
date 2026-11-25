@@ -17,8 +17,8 @@ struct NotificationsOnboardingView: View {
             t.bg.ignoresSafeArea()
             VStack(spacing: 18) {
                 BrandMark(color: t.gold).frame(width: 120, height: 120)
-                // owner 2026-11-25: the name larger and in black (the cream of the dark mode)
-                Text("علم من الكتاب").font(AppFont.serif(46)).foregroundStyle(t.cream)
+                // owner 2026-11-25: the name larger, in black (the cream of the dark mode) and bolder
+                Text("علم من الكتاب").font(AppFont.serif(46)).foregroundStyle(t.cream).heavier(t.cream)
             }
             .offset(y: -20)
 
