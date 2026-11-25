@@ -2,8 +2,7 @@ import SwiftUI
 import UIKit
 import UserNotifications
 
-/// «المزيد»: appearance, text size, the morning reminder, content updates, about / methodology (from the names pack),
-/// feedback, the optional account (sign in / sign out / delete) and the version line.
+/// «المزيد»: appearance, text size, the morning reminder, feedback, the optional account (sign in / sign out / delete) and the version line.
 struct MoreView: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var phase
@@ -28,7 +27,6 @@ struct MoreView: View {
                 appearanceSection(t)
                 textSection(t)
                 reminderSection(t)
-                contentSection(t)
                 aboutSection(t)
                 accountSection(t)
                 Section {
@@ -138,64 +136,12 @@ struct MoreView: View {
         .listRowBackground(t.surface)
     }
 
-    private func contentSection(_ t: Theme) -> some View {
-        Section {
-            contentRow(t, .names, count: Arabic.count(NamesRepo.shared.names.count, Arabic.names),
-                       date: NamesRepo.shared.index?.generatedAt)
-                .id("content")
-            contentRow(t, .sunan, count: SunanText.count(SunanRepo.shared.index?.stats.items ?? 0, SunanText.sunan),
-                       date: SunanRepo.shared.index?.generatedAt)
-            LabeledContent {
-                Text(sync.lastCheck.map { ArabicDate.relative($0) } ?? "لم يُتحقَّق بعد")
-                    .font(AppFont.sans(15)).foregroundStyle(t.muted)
-            } label: {
-                Text("آخر تحقّق").font(AppFont.sans(17)).foregroundStyle(t.cream)
-            }
-            Button {
-                Task { await sync.check(userInitiated: true) }
-            } label: {
-                HStack(spacing: 10) {
-                    if sync.busy { ProgressView().tint(t.gold) }
-                    Text(SyncText.progress(sync.phase) ?? "تحقّق من التحديث")
-                        .font(AppFont.sans(17, .medium)).foregroundStyle(sync.busy ? t.muted : t.gold)
-                }
-            }
-            .disabled(sync.busy)
-            switch sync.phase {
-            case .done(let m):
-                Label { Text(m).font(AppFont.sans(15)).foregroundStyle(t.result) } icon: {
-                    Image(systemName: "checkmark.circle").foregroundStyle(t.result)
-                }
-            case .failed(let m):
-                Label { Text(m).font(AppFont.sans(15)).foregroundStyle(t.neg) } icon: {
-                    Image(systemName: "exclamationmark.triangle").foregroundStyle(t.neg)
-                }
-            default:
-                EmptyView()
-            }
-        } header: {
-            header("المحتوى", t)
-        } footer: {
-            footer("المحتوى كله يعمل دون إنترنت، ويُنزَّل الجديد من المنصة تلقائيًا عند فتح التطبيق.", t)
-        }
-        .listRowBackground(t.surface)
-    }
-
-    private func contentRow(_ t: Theme, _ s: PackSection, count: String, date: String?) -> some View {
-        let downloaded = PackStore.isDownloaded(s)
-        return VStack(alignment: .leading, spacing: 4) {
-            Text(SyncText.title(s)).font(AppFont.sans(17, .medium)).foregroundStyle(t.cream)
-            Text("\(count) · \(versionWords(date))").font(AppFont.sans(14)).foregroundStyle(t.muted)
-            Text(downloaded ? "محدّثة من المنصة" : "النسخة المضمّنة في التطبيق")
-                .font(AppFont.sans(13)).foregroundStyle(downloaded ? t.result : t.muted)
-        }
-        .padding(.vertical, 2)
-    }
+    // owner 2026-11-25: the «المحتوى» section (versions, last check, «تحقّق من التحديث») removed — the content still
+    // updates by itself when the app opens (PackSync)
 
     private func aboutSection(_ t: Theme) -> some View {
         Section {
-            NavigationLink { MarkdownPageView(page: .about) } label: { rowLabel(t, "info.circle", "عن المنصة") }
-            NavigationLink { MarkdownPageView(page: .methodology) } label: { rowLabel(t, "book.closed", "المنهجية") }
+            // owner 2026-11-25: «عن المنصة» and «المنهجية» removed
             Link(destination: Site.url("/suggest")) {
                 HStack {
                     rowLabel(t, "envelope", "أرسل ملاحظة")
@@ -267,10 +213,6 @@ struct MoreView: View {
         } icon: {
             Image(systemName: icon).foregroundStyle(t.gold)
         }
-    }
-
-    private func versionWords(_ iso: String?) -> String {
-        ArabicDate.parseISO(iso).map { "نسخة \(ArabicDate.day($0))" } ?? "نسخة غير مؤرّخة"
     }
 
     private var versionLine: String {
