@@ -68,13 +68,13 @@ enum Today {
             return Name(id: c.id, name: c.name, excerpt: c.excerpt)
         }
 
-        /// «سنّة اليوم»: the starred sunan of «برنامج اليوم والليلة» («ابدأ بهذه»), one a day in the programme's order.
-        var stars: [Sunnah] {
+        /// The starred sunan («ابدأ بهذه») of the given times, in the programme's order.
+        private func stars(_ keep: (Int, DayFile.Time) -> Bool) -> [Sunnah] {
             guard let d = day else { return [] }
             var out: [Sunnah] = []
             var seen = Set<String>()
-            for p in d.periods {
-                for t in p.times {
+            for (pi, p) in d.periods.enumerated() {
+                for t in p.times where keep(pi, t) {
                     for it in t.items where it.star == true && !seen.contains(it.fp) {
                         seen.insert(it.fp)
                         out.append(Sunnah(fp: it.fp, stateId: it.stateId, time: t.title, todo: it.todo, fruit: it.fruit,
@@ -85,11 +85,15 @@ enum Today {
             return out
         }
 
-        func sunnah(_ date: Date) -> Sunnah? {
-            let s = stars
-            guard !s.isEmpty else { return nil }
+        /// «سنّة اليوم»: one starred sunnah a day from «اليوم والليلة» and «في مواقف يومك» (never a season's — the
+        /// Hajj, Ramadan… are not every day); on Fridays one of «يوم الجمعة».
+        func sunnah(_ date: Date, calendar: Calendar = .current) -> Sunnah? {
             let d = Today.dayNumber(date)
-            return s[((d % s.count) + s.count) % s.count]
+            func pick(_ s: [Sunnah]) -> Sunnah? { s.isEmpty ? nil : s[((d % s.count) + s.count) % s.count] }
+            if calendar.component(.weekday, from: date) == 6, let f = pick(stars { _, t in t.title == "يوم الجمعة" }) {
+                return f
+            }
+            return pick(stars { p, _ in p < 2 })
         }
     }
 
