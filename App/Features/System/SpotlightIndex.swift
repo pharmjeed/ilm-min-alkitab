@@ -26,7 +26,10 @@ enum SpotlightIndex {
         let a = CSSearchableItemAttributeSet(contentType: .text)
         a.title = title
         a.contentDescription = text
-        a.keywords = Array(Set(keywords + words(title) + words(text).prefix(12))).sorted()
+        var all: [String] = keywords
+        all.append(contentsOf: words(title))
+        all.append(contentsOf: Array(words(text).prefix(12)))
+        a.keywords = Array(Set(all)).sorted()
         return CSSearchableItem(uniqueIdentifier: id, domainIdentifier: domain, attributeSet: a)
     }
 
