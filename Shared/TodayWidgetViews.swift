@@ -91,17 +91,42 @@ struct TodayWidgetView: View {
             .widgetURL(entry.name.map(Today.link))
     }
 
+    /// The box's size is the system's (about 160×72 points); the text fills it (owner 2026-11-26 «صغيرة في شاشة القفل»):
+    /// the largest name that stays on one line with its line under it, else a smaller one, else a long name on up to
+    /// three lines alone. Line heights are the fonts' own (1.25 × size), so each layout's height is known.
     private var rectangular: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text("اسم اليوم").font(WidgetLook.sans(11, .medium)).widgetAccentable()
-            Text(entry.name?.name ?? "—").font(WidgetLook.serif(17)).lineLimit(1).minimumScaleFactor(0.6)
-            if let n = entry.name {
-                Text(NotificationText.body(n.excerpt, max: 46)).font(WidgetLook.sans(11)).lineLimit(1)
-            }
+        ViewThatFits(in: .vertical) {
+            lockBox(name: 26, text: 15)
+            lockBox(name: 22, text: 14)
+            lockBox(name: 19, text: 13)
+            lockBox(name: 17, text: nil)
+            lockBox(name: 14, text: nil, lines: 3)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .containerBackground(for: .widget) { Color.clear }
         .widgetURL(entry.name.map(Today.link))
+    }
+
+    private func lockBox(name size: CGFloat, text: CGFloat?, lines: Int? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("اسم اليوم").font(WidgetLook.sans(12, .medium)).widgetAccentable()
+            Text(entry.name?.name ?? "—").font(WidgetLook.serif(size)).lineLimit(lines)
+            if let text, let n = entry.name { lockLine(n.excerpt, text) }
+        }
+    }
+
+    /// One line of the excerpt: the longest cut that fits whole (a cut never falls inside an ayah — NotificationText).
+    private func lockLine(_ excerpt: String, _ size: CGFloat) -> some View {
+        func cut(_ m: Int) -> some View {
+            Text(NotificationText.body(excerpt, max: m)).font(WidgetLook.sans(size)).lineLimit(1)
+        }
+        return ViewThatFits(in: .horizontal) {
+            cut(60)
+            cut(44)
+            cut(34)
+            cut(26)
+            cut(20).minimumScaleFactor(0.75)
+        }
     }
 
     // MARK: home screen — the name one day, the sunnah the next, «بدّل» between them
