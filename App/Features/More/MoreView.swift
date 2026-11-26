@@ -21,6 +21,7 @@ struct MoreView: View {
     @State private var ciDone = false
     @State private var signingIn = false
     @State private var confirmDelete = false
+    @State private var showSearchCheck = false
 
     static let sampleAyah = "﴿وَلِلَّهِ الْأَسْمَاءُ الْحُسْنَىٰ فَادْعُوهُ بِهَا﴾"
 
@@ -40,6 +41,7 @@ struct MoreView: View {
                     Text(versionLine).font(AppFont.sans(13)).foregroundStyle(t.muted)
                         .frame(maxWidth: .infinity)
                         .id("version")
+                        .onTapGesture { showSearchCheck = true }   // the iPhone search check
                 }
                 .listRowBackground(Color.clear)
             }
@@ -61,6 +63,7 @@ struct MoreView: View {
         .navigationTitle("المزيد")
         .navigationDestination(isPresented: $showAbout) { MarkdownPageView(page: .about) }
         .navigationDestination(isPresented: $showFeedback) { FeedbackView() }
+        .navigationDestination(isPresented: $showSearchCheck) { SpotlightProbeView() }
         .sheet(isPresented: $signingIn) { SaveSignInSheet(item: nil) }
         .confirmationDialog("حذف الحساب", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("احذف حسابي نهائيًا", role: .destructive) { Task { _ = await Account.shared.deleteAccount() } }

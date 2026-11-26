@@ -11,6 +11,8 @@ enum SpotlightIndex {
     private static let schema = "2"   // 2: written again without «delete all» (builds 23–24 never finished it)
 
     private static let idsKey = "spotlight.ids"
+    /// What the last indexing said, with its time — shown on the check page («المزيد» › the version line).
+    static let statusKey = "spotlight.status"
 
     /// Returns how many items were indexed (0 when the index was already current or indexing failed).
     /// Items are written over by id (no «delete all» first: on the CI simulator that call never answered, and the
@@ -29,7 +31,9 @@ enum SpotlightIndex {
         let ok = await within(30) { done in
             index.indexSearchableItems(items) { error in done(error == nil) }
         }
-        await log?(ok == true ? "سُجّل في البحث" : ok == false ? "رفض البحث التسجيل" : "لم يُجب البحث خلال ٣٠ ثانية")
+        let said = ok == true ? "سُجّل في البحث \(items.count) عنصرًا" : ok == false ? "رفض البحث التسجيل" : "لم يُجب البحث خلال ٣٠ ثانية"
+        await log?(said)
+        UserDefaults.standard.set("\(said) — \(Date().formatted(date: .abbreviated, time: .shortened))", forKey: statusKey)
         guard ok == true else { return 0 }
         if !gone.isEmpty {
             index.deleteSearchableItems(withIdentifiers: Array(gone)) { _ in }
@@ -154,7 +158,8 @@ enum SpotlightIndex {
     }
 }
 
-/// CI only (`-route spotlight`): indexes now and shows what a few words find in the index.
+/// The search check (a tap on the version line of «المزيد»; CI: `-route spotlight`): what the last indexing said,
+/// then indexes again now and shows what a few words find in the index.
 struct SpotlightProbeView: View {
     @State private var lines: [String] = ["…"]
 
@@ -168,8 +173,9 @@ struct SpotlightProbeView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .environment(\.layoutDirection, .rightToLeft)
+        .navigationTitle("فحص بحث الجوال")
         .task {
-            lines = []
+            lines = ["آخر تسجيل: " + (UserDefaults.standard.string(forKey: SpotlightIndex.statusKey) ?? "لم يتم بعد")]
             let n = await SpotlightIndex.refresh(force: true) { lines.append($0) }
             lines.append("فُهرس الآن: \(n) عنصرًا")
             try? await Task.sleep(nanoseconds: 3_000_000_000)
