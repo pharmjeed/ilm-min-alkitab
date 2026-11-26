@@ -35,6 +35,19 @@ enum Today {
         let id: Int
         let name: String
         let excerpt: String
+        /// «الموضع» of the name (owner 2026-11-26 «اريده مع الموضع الخاص به»): its first position, verbatim.
+        var verse: Verse? = nil
+    }
+
+    /// An ayah of the names pack (NameCard.verse): the text verbatim, never cut.
+    struct Verse: Hashable, Decodable {
+        let s: Int
+        let surah: String
+        let a: Int
+        let last: Int?
+        let text: String
+        /// «[التوبة: 2]», «[البقرة: 1–3]» — as on the name page.
+        var ref: String { "[\(surah): \(last.map { "\(a)–\($0)" } ?? "\(a)")]" }
     }
 
     struct Sunnah: Hashable {
@@ -65,7 +78,7 @@ enum Today {
             let fixed = f.nameOfDay.fixedId.map { id in f.names.firstIndex { $0.id == id } ?? 0 }
             let i = Today.nameIndex(mode: f.nameOfDay.mode, fixedIndex: fixed, count: f.names.count, date: date)
             let c = f.names[min(max(i, 0), f.names.count - 1)]
-            return Name(id: c.id, name: c.name, excerpt: c.excerpt)
+            return Name(id: c.id, name: c.name, excerpt: c.excerpt, verse: c.verse)
         }
 
         /// The starred sunan («ابدأ بهذه») of the given times, in the programme's order.
@@ -106,6 +119,7 @@ enum Today {
             let id: Int
             let name: String
             let excerpt: String
+            let verse: Verse?
         }
         let nameOfDay: Setting
         let names: [Card]

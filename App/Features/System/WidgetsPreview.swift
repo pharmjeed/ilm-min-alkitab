@@ -5,16 +5,20 @@ import WidgetKit
 /// then a day of the sunnah — so their screenshots can be checked before an upload.
 struct WidgetsPreview: View {
     let sunnah: Bool
+    /// `widgets3` / `widgets4`: the name day drawn for a name whose ayah has about this many letters (a mid and a
+    /// long ayah), to see which ayah size each widget takes, or its reference alone.
+    var ayahLength: Int? = nil
 
     var body: some View {
         let c = Today.Content.app
         let now = Date()
-        let e = TodayEntry(date: now, name: c.name(now), sunnah: c.sunnah(now), showsSunnah: sunnah)
+        let e = TodayEntry(date: now, name: ayahLength.flatMap { sample(c, $0) } ?? c.name(now), sunnah: c.sunnah(now),
+                           showsSunnah: sunnah)
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 Text(sunnah ? "أداة الشاشة الرئيسية — يوم السنّة" : "أداة الشاشة الرئيسية — يوم الاسم")
                     .font(WidgetLook.sans(13, .medium)).foregroundStyle(.white.opacity(0.8))
-                if !sunnah {
+                if !sunnah && ayahLength == nil {
                     // the lock screen box at its size (dashed edge), for today's name and for a medium and the longest name
                     Text("شاشة القفل").font(WidgetLook.sans(12, .medium)).foregroundStyle(.white.opacity(0.8))
                     let samples = lockSamples(c)
@@ -44,6 +48,14 @@ struct WidgetsPreview: View {
             .foregroundStyle(.white)
             .frame(width: 160, height: 72)
             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+    }
+
+    private func sample(_ c: Today.Content, _ length: Int) -> Today.Name? {
+        guard let all = c.names?.names else { return nil }
+        guard let n = all.filter({ $0.verse != nil }).min(by: {
+            abs($0.verse!.text.count - length) < abs($1.verse!.text.count - length)
+        }) else { return nil }
+        return Today.Name(id: n.id, name: n.name, excerpt: n.excerpt, verse: n.verse)
     }
 
     /// A name of about twenty letters and the longest name, to see the lock box's smaller layouts.

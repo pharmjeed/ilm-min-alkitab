@@ -79,3 +79,5 @@
 51-notif-tap|-onboarded YES -route notiftap -ciNotify YES|7
 60-widgets-name|-onboarded YES -route widgets
 60b-widgets-sunnah|-onboarded YES -route widgets2
+60c-widgets-ayah-mid|-onboarded YES -route widgets3
+60d-widgets-ayah-long|-onboarded YES -route widgets4

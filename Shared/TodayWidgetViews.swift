@@ -68,6 +68,8 @@ enum WidgetLook {
         }
     }
     static func serif(_ size: CGFloat) -> Font { .custom("thmanyahserifdisplay-Bold", size: size) }
+    /// Quran text only.
+    static func amiri(_ size: CGFloat) -> Font { .custom("Amiri-Regular", size: size) }
 }
 
 /// Every family of the two widgets: the home widget (small / medium / large) and the lock screen (a line, a box).
@@ -159,15 +161,56 @@ struct TodayWidgetView: View {
         .widgetURL(showSunnah ? entry.sunnah.map(Today.link) : entry.name.map(Today.link))
     }
 
+    /// The name with its ayah (owner 2026-11-26): the largest ayah size whose WHOLE ayah fits (an ayah is never cut);
+    /// when even the smallest does not fit, the name with its meaning and the ayah's reference.
     private func nameBody(_ n: Today.Name) -> some View {
+        let sizes: [CGFloat] = small ? [15, 13, 11.5] : large ? [21, 18, 16, 14, 12.5] : [17, 15, 13, 11.5]
+        return ViewThatFits(in: .vertical) {
+            if let v = n.verse {
+                if large { nameWithVerse(n, v, sizes[0], meaning: true) }
+                nameWithVerse(n, v, sizes[0])
+                nameWithVerse(n, v, sizes[1])
+                nameWithVerse(n, v, sizes[2])
+                if sizes.count > 3 { nameWithVerse(n, v, sizes[3]) }
+                if sizes.count > 4 { nameWithVerse(n, v, sizes[4]) }
+            }
+            nameWithMeaning(n)
+        }
+    }
+
+    private func nameWithVerse(_ n: Today.Name, _ v: Today.Verse, _ size: CGFloat, meaning: Bool = false) -> some View {
+        var ayah = AttributedString("﴿\(v.text)﴾")
+        ayah.font = WidgetLook.amiri(size)
+        ayah.foregroundColor = WidgetLook.cream
+        var ref = AttributedString(" \(v.ref)")
+        ref.font = WidgetLook.sans(max(10, size * 0.62))
+        ref.foregroundColor = WidgetLook.cream.opacity(0.6)
+        return VStack(alignment: .leading, spacing: small ? 2 : 4) {
+            Text(n.name).font(WidgetLook.serif(small ? 20 : large ? 34 : 24)).foregroundStyle(WidgetLook.gold)
+                .lineLimit(small || large ? 2 : 1).minimumScaleFactor(0.55)
+            Text(ayah + ref)
+            if meaning {
+                Text(NotificationText.body(n.excerpt, max: 160)).font(WidgetLook.sans(14))
+                    .foregroundStyle(WidgetLook.cream.opacity(0.85)).lineSpacing(4).padding(.top, 4)
+            }
+            if large {
+                Spacer(minLength: 0)
+                Text("اقرأ معناه، ومتى تدعو به ←").font(WidgetLook.sans(11, .medium)).foregroundStyle(WidgetLook.gold)
+            }
+        }
+    }
+
+    private func nameWithMeaning(_ n: Today.Name) -> some View {
         VStack(alignment: .leading, spacing: small ? 4 : 8) {
             Text(n.name).font(WidgetLook.serif(small ? 24 : large ? 40 : 30)).foregroundStyle(WidgetLook.cream)
                 .lineLimit(small ? 3 : 2).minimumScaleFactor(0.55)
-            Text(NotificationText.body(n.excerpt, max: small ? 60 : large ? 230 : 105))
+            Text(NotificationText.body(n.excerpt, max: small ? 50 : large ? 230 : 90))
                 .font(WidgetLook.sans(small ? 11 : large ? 15 : 13)).foregroundStyle(WidgetLook.cream.opacity(0.9))
                 .lineSpacing(large ? 6 : 3)
             Spacer(minLength: 0)
-            if !small {
+            if let v = n.verse {
+                Text("آيته \(v.ref) ←").font(WidgetLook.sans(11, .medium)).foregroundStyle(WidgetLook.gold)
+            } else if !small {
                 Text("اقرأ معناه، ومتى تدعو به ←").font(WidgetLook.sans(11, .medium)).foregroundStyle(WidgetLook.gold)
             }
         }

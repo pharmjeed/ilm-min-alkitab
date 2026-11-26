@@ -43,7 +43,8 @@ struct RootView: View {
         ZStack {
             Group {
                 if Route.arg.hasPrefix("widgets") {
-                    WidgetsPreview(sunnah: Route.arg == "widgets2")
+                    WidgetsPreview(sunnah: Route.arg == "widgets2",
+                                   ayahLength: Route.arg == "widgets3" ? 120 : Route.arg == "widgets4" ? 260 : nil)
                 } else if onboarded {
                     MainTabView()
                 } else {
