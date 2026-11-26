@@ -8,9 +8,13 @@ import UniformTypeIdentifiers
 /// whenever the content version changes.
 enum SpotlightIndex {
     private static let stampKey = "spotlight.stamp"
-    private static let schema = "1"
+    private static let schema = "2"   // 2: written again without «delete all» (builds 23–24 never finished it)
+
+    private static let idsKey = "spotlight.ids"
 
     /// Returns how many items were indexed (0 when the index was already current or indexing failed).
+    /// Items are written over by id (no «delete all» first: on the CI simulator that call never answered, and the
+    /// iPhone showed nothing); ids that are gone are removed one by one. An item no longer expires after 30 days.
     @discardableResult
     static func refresh(force: Bool = false, log: (@MainActor (String) -> Void)? = nil) async -> Int {
         let stamp = [schema, PackStore.currentVersion(.names) ?? "", PackStore.currentVersion(.sunan) ?? ""].joined(separator: "|")
@@ -20,38 +24,55 @@ enum SpotlightIndex {
         await log?("بُني \(items.count) عنصرًا")
         guard !items.isEmpty else { return 0 }
         let index = CSSearchableIndex.default()
-        do {
-            try await index.deleteAllSearchableItems()
-            await log?("حُذف القديم")
-            try await index.indexSearchableItems(items)
-            await log?("فُهرس الجديد")
-            UserDefaults.standard.set(stamp, forKey: stampKey)
-            return items.count
-        } catch {
-            await log?("خطأ: \(error.localizedDescription)")
-            return 0
+        let ids = items.map(\.uniqueIdentifier)
+        let gone = Set(UserDefaults.standard.stringArray(forKey: idsKey) ?? []).subtracting(ids)
+        let ok = await within(30) { done in
+            index.indexSearchableItems(items) { error in done(error == nil) }
+        }
+        await log?(ok == true ? "سُجّل في البحث" : ok == false ? "رفض البحث التسجيل" : "لم يُجب البحث خلال ٣٠ ثانية")
+        guard ok == true else { return 0 }
+        if !gone.isEmpty {
+            index.deleteSearchableItems(withIdentifiers: Array(gone)) { _ in }
+        }
+        UserDefaults.standard.set(ids, forKey: idsKey)
+        UserDefaults.standard.set(stamp, forKey: stampKey)
+        return items.count
+    }
+
+    /// Runs a call that answers through a completion handler; nil when it does not answer within `seconds`.
+    private static func within(_ seconds: Double, _ call: @escaping (@escaping (Bool) -> Void) -> Void) async -> Bool? {
+        await withCheckedContinuation { (cont: CheckedContinuation<Bool?, Never>) in
+            let lock = NSLock()
+            var resumed = false
+            func finish(_ v: Bool?) {
+                lock.lock()
+                defer { lock.unlock() }
+                guard !resumed else { return }
+                resumed = true
+                cont.resume(returning: v)
+            }
+            call { finish($0) }
+            DispatchQueue.global().asyncAfter(deadline: .now() + seconds) { finish(nil) }
         }
     }
 
     /// CI only: the titles of this app's indexed items that a word finds (title or keywords), as the iPhone's search
     /// would match them — to see the index holds what it should.
     static func probe(_ word: String) async -> [String]? {
-        await withTaskGroup(of: [String]?.self) { g in
-            g.addTask { await query(word) }
-            g.addTask { try? await Task.sleep(nanoseconds: 6_000_000_000); return nil }
-            let first = await g.next() ?? nil
-            g.cancelAll()
-            return first
-        }
-    }
-
-    private static func query(_ word: String) async -> [String] {
-        await withCheckedContinuation { (cont: CheckedContinuation<[String], Never>) in
+        await withCheckedContinuation { (cont: CheckedContinuation<[String]?, Never>) in
             let ctx = CSSearchQueryContext()
             ctx.fetchAttributes = ["title"]
             let q = CSSearchQuery(queryString: "title == \"*\(word)*\"cd || keywords == \"\(word)*\"cd", queryContext: ctx)
             let lock = NSLock()
             var found: [String] = []
+            var resumed = false
+            func finish(_ v: [String]?) {
+                lock.lock()
+                defer { lock.unlock() }
+                guard !resumed else { return }
+                resumed = true
+                cont.resume(returning: v)
+            }
             q.foundItemsHandler = { items in
                 lock.lock()
                 found += items.compactMap { $0.attributeSet.title }
@@ -61,9 +82,10 @@ enum SpotlightIndex {
                 lock.lock()
                 let out = found
                 lock.unlock()
-                cont.resume(returning: out)
+                finish(out)
             }
             q.start()
+            DispatchQueue.global().asyncAfter(deadline: .now() + 8) { finish(nil) }
         }
     }
 
@@ -76,7 +98,9 @@ enum SpotlightIndex {
         all.append(contentsOf: words(title))
         all.append(contentsOf: Array(words(text).prefix(12)))
         a.keywords = Array(Set(all)).sorted()
-        return CSSearchableItem(uniqueIdentifier: id, domainIdentifier: domain, attributeSet: a)
+        let item = CSSearchableItem(uniqueIdentifier: id, domainIdentifier: domain, attributeSet: a)
+        item.expirationDate = .distantFuture   // the default is 30 days; the index is written again only on a new version
+        return item
     }
 
     private static func build() -> [CSSearchableItem] {
