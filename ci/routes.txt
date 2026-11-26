@@ -77,3 +77,5 @@
 42-sunan-search|-onboarded YES -route ssearch
 50-notif-scheduled|-onboarded YES -route notif -ciNotify YES|7
 51-notif-tap|-onboarded YES -route notiftap -ciNotify YES|7
+60-widgets-name|-onboarded YES -route widgets
+60b-widgets-sunnah|-onboarded YES -route widgets2

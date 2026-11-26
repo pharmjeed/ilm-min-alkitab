@@ -1,3 +1,4 @@
+import CoreSpotlight
 import SwiftUI
 import UIKit
 import UserNotifications
@@ -41,7 +42,9 @@ struct RootView: View {
     var body: some View {
         ZStack {
             Group {
-                if onboarded {
+                if Route.arg.hasPrefix("widgets") {
+                    WidgetsPreview(sunnah: Route.arg == "widgets2")
+                } else if onboarded {
                     MainTabView()
                 } else {
                     NotificationsOnboardingView(ready: splashDone) { onboarded = true }
@@ -96,9 +99,19 @@ struct MainTabView: View {
         .onAppear { PackSync.shared.nav = nav }
         .onReceive(router.$pending) { open in
             guard let open else { return }
-            nav.openName(open.nameId)
+            switch open.target {
+            case .name(let id): nav.openName(id)
+            case .sunnah(let fp, let stateId): nav.openSunnah(fp: fp, stateId: stateId)
+            }
             DispatchQueue.main.async { router.pending = nil }
         }
+        // the widgets' links: ilm://name/<id>, ilm://sunnah/<state>/<fp>
+        .onOpenURL { url in DeepLink.open(url, nav) }
+        // a name, a situation or a state found in the iPhone's search (Spotlight)
+        .onContinueUserActivity(CSSearchableItemActionType) { activity in
+            if let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String { SpotlightIndex.open(id, nav) }
+        }
+        .task { await SpotlightIndex.refresh() }
         // a downloaded version waits while its pages are open
         .onChange(of: nav.homePath) { _, _ in
             Task { await PackSync.shared.activateReady(force: false) }
@@ -127,6 +140,16 @@ final class AppNav: ObservableObject {
     func openName(_ id: Int) {
         tab = 0
         homePath = [.names, .n(.name(id))]
+    }
+    /// An evening notification or the widget: «الرئيسية» → the sunnah page.
+    func openSunnah(fp: String, stateId: Int) {
+        tab = 0
+        homePath = [.sunan, .s(.item(fp: fp, stateId: stateId))]
+    }
+    /// A page reached from outside the app (Spotlight): «الرئيسية» → that path.
+    func openPath(_ path: [HomeDestination]) {
+        tab = 0
+        homePath = path
     }
     /// Whether a page of the section is in the «الرئيسية» stack.
     func uses(_ s: PackSection) -> Bool { homePath.contains { $0.section == s } }

@@ -43,6 +43,8 @@ jobs:
       - name: Embed entitlements
         run: |
           APP=$(find build/Ilm.xcarchive/Products/Applications -maxdepth 1 -name '*.app' | head -1)
+          # the widget extension first (a bundle is signed inside out); it needs no entitlements
+          for X in "$APP"/PlugIns/*.appex; do [ -d "$X" ] && codesign --force --sign - --timestamp=none "$X"; done
           codesign --force --sign - --timestamp=none --entitlements Config/IlmMinAlKitab.entitlements "$APP"
           codesign -d --entitlements - "$APP" 2>/dev/null | grep -q applesignin || { echo "entitlements missing in the archive"; exit 1; }
       - name: Export locally and check the signed app

@@ -48,6 +48,45 @@ enum MorningReminder {
     }
 }
 
+/// «تذكير المساء» (owner 2026-11-26: «إشعار هادئ مرة أو مرتين في اليوم»): «سنّة اليوم» of «برنامج اليوم والليلة» — the
+/// same sunnah as the home widget — at the chosen time (default 21:00), opening its page.
+enum EveningReminder {
+    static let idPrefix = "evening-"
+
+    private static var d: UserDefaults { .standard }
+    static var enabled: Bool { d.object(forKey: "evening.enabled") == nil ? true : d.bool(forKey: "evening.enabled") }
+    static var hour: Int { d.object(forKey: "evening.hour") == nil ? 21 : d.integer(forKey: "evening.hour") }
+    static var minute: Int { d.object(forKey: "evening.minute") == nil ? 0 : d.integer(forKey: "evening.minute") }
+
+    struct Planned {
+        let id: String
+        let fire: Date
+        let sunnah: Today.Sunnah
+        var title: String { "سنّة اليوم · \(sunnah.time)" }
+        var body: String { sunnah.fruit.map { "\(sunnah.todo) ← \($0)" } ?? sunnah.todo }
+        var userInfo: [AnyHashable: Any] { ["route": "sunnah", "fp": sunnah.fp, "stateId": sunnah.stateId] }
+    }
+
+    /// The next `MorningReminder.windowDays` evenings after `now`.
+    static func plan(from now: Date = Date(), calendar: Calendar = .current) -> [Planned] {
+        let content = Today.Content.app
+        var out: [Planned] = []
+        let today = calendar.startOfDay(for: now)
+        let g = Calendar(identifier: .gregorian)
+        for offset in 0...MorningReminder.windowDays {
+            guard out.count < MorningReminder.windowDays,
+                  let day = calendar.date(byAdding: .day, value: offset, to: today),
+                  let fire = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day),
+                  fire > now,
+                  let s = content.sunnah(fire) else { continue }
+            let c = g.dateComponents(in: calendar.timeZone, from: fire)
+            let id = idPrefix + String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+            out.append(Planned(id: id, fire: fire, sunnah: s))
+        }
+        return out
+    }
+}
+
 /// Serialises rescheduling (each run removes the window and adds it again).
 @MainActor
 final class ReminderScheduler {
@@ -68,84 +107,74 @@ final class ReminderScheduler {
 
     nonisolated private static func apply() async -> Int {
         let center = UNUserNotificationCenter.current()
-        let old = await center.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix(MorningReminder.idPrefix) }
+        let old = await center.pendingNotificationRequests().map(\.identifier)
+            .filter { $0.hasPrefix(MorningReminder.idPrefix) || $0.hasPrefix(EveningReminder.idPrefix) }
         center.removePendingNotificationRequests(withIdentifiers: old)
         let status = await center.notificationSettings().authorizationStatus
-        guard MorningReminder.enabled, MorningReminder.allowed(status) else { return 0 }
+        guard MorningReminder.allowed(status) else { return 0 }
         var n = 0
-        for p in MorningReminder.plan() {
+        func add(_ id: String, _ title: String, _ body: String, _ info: [AnyHashable: Any], _ fire: Date, _ thread: String) async {
             let content = UNMutableNotificationContent()
-            content.title = p.title
-            content.body = p.body
+            content.title = title
+            content.body = body
             content.sound = .default
-            content.threadIdentifier = "morning"
-            content.userInfo = p.userInfo
-            let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: p.fire)
+            content.threadIdentifier = thread
+            content.userInfo = info
+            let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: fire)
             let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
             do {
-                try await center.add(UNNotificationRequest(identifier: p.id, content: content, trigger: trigger))
+                try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
                 n += 1
             } catch {}
+        }
+        // 30 mornings + 30 evenings stay under iOS's 64 pending notifications
+        if MorningReminder.enabled {
+            for p in MorningReminder.plan() { await add(p.id, p.title, p.body, p.userInfo, p.fire, "morning") }
+        }
+        if EveningReminder.enabled {
+            for p in EveningReminder.plan() { await add(p.id, p.title, p.body, p.userInfo, p.fire, "evening") }
         }
         return n
     }
 }
 
-/// The notification text: the name's excerpt from the pack, verbatim, at most `max` characters (Unicode scalars, as
-/// the website counts). A cut never falls inside an ayah: the excerpt is cut before its «﴿» or keeps the whole ayah.
-enum NotificationText {
-    static let fallback = "افتح لتقرأ معنى الاسم، ومتى تدعو به."
-    private static let trailing: Set<Unicode.Scalar> = [":", "،", "؛", "—", "–", "-", ",", "."]
+// NotificationText (the shortened excerpt) lives in Shared/Today.swift — the widget uses it too.
 
-    static func body(_ excerpt: String, max: Int = 140) -> String {
-        let s = Array(excerpt.trimmingCharacters(in: .whitespacesAndNewlines).unicodeScalars)
-        let n = s.count
-        // ayah spans: consecutive ornate brackets (open, close); an unclosed one runs to the end
-        let brackets = s.indices.filter { s[$0] == "\u{FD3F}" || s[$0] == "\u{FD3E}" }
-        var spans: [(Int, Int)] = []
-        var k = 0
-        while k < brackets.count {
-            spans.append((brackets[k], k + 1 < brackets.count ? brackets[k + 1] : n))
-            k += 2
-        }
-        let complete = spans.allSatisfy { $0.1 < n }
-        if n <= max && complete { return String(String.UnicodeScalarView(s)) }
-        let starts = Set(spans.map(\.0))
-        let ends = Set(spans.map(\.1))
-        func splits(_ c: Int) -> Bool { spans.contains { $0.0 < c && c <= $0.1 } }
-        func boundary(_ c: Int) -> Bool {
-            c >= n || s[c].properties.isWhitespace || s[c - 1].properties.isWhitespace
-                || starts.contains(c) || ends.contains(c - 1)
-        }
-        var cut = Swift.min(n, max - 1)
-        while cut > 0 && (splits(cut) || !boundary(cut)) { cut -= 1 }
-        var head = Array(s[0..<cut])
-        while let last = head.last, last.properties.isWhitespace || trailing.contains(last) { head.removeLast() }
-        guard !head.isEmpty else { return fallback }
-        return String(String.UnicodeScalarView(head)) + "…"
-    }
-}
-
-/// Notification taps → the name page (cold start included: the request waits until the tab shell consumes it).
+/// Notification taps → the name or sunnah page (cold start included: the request waits until the tab shell consumes it).
 final class NotificationRouter: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationRouter()
 
     struct Open: Equatable {
         let token = UUID()
-        let nameId: Int
+        let target: Target
+    }
+
+    /// Where a tap leads: the name page (morning), the sunnah page (evening).
+    enum Target: Equatable {
+        case name(Int)
+        case sunnah(fp: String, stateId: Int)
     }
 
     @Published var pending: Open?
 
+    private static func int(_ v: Any?) -> Int? { (v as? Int) ?? (v as? NSNumber)?.intValue }
+
     static func nameId(_ info: [AnyHashable: Any]) -> Int? {
         guard (info["route"] as? String) == "name" else { return nil }
-        if let i = info["nameId"] as? Int { return i }
-        return (info["nameId"] as? NSNumber)?.intValue
+        return int(info["nameId"])
+    }
+
+    static func target(_ info: [AnyHashable: Any]) -> Target? {
+        if let id = nameId(info) { return .name(id) }
+        if (info["route"] as? String) == "sunnah", let fp = info["fp"] as? String, let st = int(info["stateId"]) {
+            return .sunnah(fp: fp, stateId: st)
+        }
+        return nil
     }
 
     func open(userInfo: [AnyHashable: Any]) {
-        guard let id = Self.nameId(userInfo) else { return }
-        Task { @MainActor in self.pending = Open(nameId: id) }
+        guard let t = Self.target(userInfo) else { return }
+        Task { @MainActor in self.pending = Open(target: t) }
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,

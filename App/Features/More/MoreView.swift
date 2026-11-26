@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 import UserNotifications
 
-/// «المزيد»: appearance, text size, the morning reminder, feedback, the optional account (sign in / sign out / delete) and the version line.
+/// «المزيد»: appearance, text size, the morning and evening reminders, feedback, the optional account (sign in / sign out / delete) and the version line.
 struct MoreView: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.scenePhase) private var phase
@@ -10,6 +10,9 @@ struct MoreView: View {
     @AppStorage("reminder.enabled") private var reminderOn = true
     @AppStorage("reminder.hour") private var hour = 7
     @AppStorage("reminder.minute") private var minute = 0
+    @AppStorage("evening.enabled") private var eveningOn = true
+    @AppStorage("evening.hour") private var eveningHour = 21
+    @AppStorage("evening.minute") private var eveningMinute = 0
     @ObservedObject private var sync = PackSync.shared
     @State private var auth: UNAuthorizationStatus?
     @State private var showAbout = Route.moreOpenAbout
@@ -28,6 +31,7 @@ struct MoreView: View {
                 appearanceSection(t)
                 textSection(t)
                 reminderSection(t)
+                eveningSection(t)
                 aboutSection(t)
                 accountSection(t)
                 Section {
@@ -66,6 +70,9 @@ struct MoreView: View {
         .onChange(of: reminderOn) { _, on in Task { await reminderToggled(on) } }
         .onChange(of: hour) { _, _ in ReminderScheduler.shared.reschedule() }
         .onChange(of: minute) { _, _ in ReminderScheduler.shared.reschedule() }
+        .onChange(of: eveningOn) { _, on in Task { await reminderToggled(on) } }
+        .onChange(of: eveningHour) { _, _ in ReminderScheduler.shared.reschedule() }
+        .onChange(of: eveningMinute) { _, _ in ReminderScheduler.shared.reschedule() }
     }
 
     // MARK: sections
@@ -216,6 +223,38 @@ struct MoreView: View {
         let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let b = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
         return "علم من الكتاب · الإصدار \(v) (\(b))"
+    }
+
+    /// «تذكير المساء» (owner 2026-11-26): «سنّة اليوم» — the same sunnah as the home widget.
+    private func eveningSection(_ t: Theme) -> some View {
+        Section {
+            Toggle(isOn: $eveningOn) {
+                Text("تذكير المساء").font(AppFont.sans(17)).foregroundStyle(t.cream)
+            }
+            .tint(t.gold)
+            if eveningOn {
+                DatePicker(selection: eveningBinding, displayedComponents: .hourAndMinute) {
+                    Text("وقت التذكير").font(AppFont.sans(17)).foregroundStyle(t.cream)
+                }
+                .tint(t.gold)
+            }
+        } header: {
+            header("تذكير المساء", t)
+        } footer: {
+            footer(eveningOn ? "يصلك كل مساء «سنّة اليوم» من «برنامج اليوم والليلة» وثمرتها، ويفتحها حين تضغط عليه."
+                             : "تذكير المساء موقوف.", t)
+        }
+        .listRowBackground(t.surface)
+    }
+
+    private var eveningBinding: Binding<Date> {
+        Binding(get: {
+            Calendar.current.date(bySettingHour: eveningHour, minute: eveningMinute, second: 0, of: Date()) ?? Date()
+        }, set: { d in
+            let c = Calendar.current.dateComponents([.hour, .minute], from: d)
+            eveningHour = c.hour ?? 21
+            eveningMinute = c.minute ?? 0
+        })
     }
 
     private var timeBinding: Binding<Date> {

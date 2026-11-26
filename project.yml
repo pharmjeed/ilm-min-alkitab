@@ -20,6 +20,7 @@ targets:
     platform: iOS
     sources:
       - path: App
+      - path: Shared
       - path: Resources/Assets.xcassets
       - path: Resources/Fonts
         buildPhase: resources
@@ -34,6 +35,8 @@ targets:
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1"   # iPhone only (the iOS preset would otherwise make it universal)
         CODE_SIGN_ENTITLEMENTS: Config/IlmMinAlKitab.entitlements   # Sign in with Apple
+    dependencies:
+      - target: IlmWidgets   # embedded in PlugIns
     info:
       path: App/Info.plist
       properties:
@@ -58,6 +61,47 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.pharmjeed.ilmminalkitab
             CFBundleURLSchemes: [ilm]
+  # «اسم اليوم وسنّة اليوم» (home screen) and «اسم اليوم» (lock screen) — owner 2026-11-26. No App Group: the extension
+  # carries the two small pack files it reads (names/index, sunan/day), so its signing needs no new capability.
+  IlmWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Widgets
+      - path: Shared
+      - path: Resources/Fonts
+        buildPhase: resources
+      - path: assets/packs/names/index.pack
+        buildPhase: resources
+      - path: assets/packs/sunan/day.pack
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.pharmjeed.ilmminalkitab.widgets
+        PRODUCT_NAME: IlmWidgets
+        INFOPLIST_FILE: Widgets/Info.plist
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: علم من الكتاب
+        CFBundleName: IlmWidgets
+        CFBundleDevelopmentRegion: ar
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        UIAppFonts:
+          - thmanyahsans-Regular.otf
+          - thmanyahsans-Medium.otf
+          - thmanyahsans-Bold.otf
+          - thmanyahserifdisplay-Medium.otf
+          - thmanyahserifdisplay-Bold.otf
+          - Amiri-Regular.ttf
+          - Amiri-Bold.ttf
 schemes:
   IlmMinAlKitab:
     build:

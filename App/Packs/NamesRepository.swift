@@ -61,27 +61,10 @@ final class NamesRepo {
         if ix.nameOfDay.mode == "fixed", let fixed = ix.nameOfDay.fixedId {
             return names.first { $0.id == fixed } ?? names[0]
         }
-        let d = Self.dayNumber(date)
-        if ix.nameOfDay.mode == "random_daily" {
-            var r = Mulberry32(seed: UInt32(truncatingIfNeeded: Int64(d) * 7919))
-            return names[Int((r.next() * Double(names.count)).rounded(.down))]
-        }
-        return names[((d % names.count) + names.count) % names.count]
+        return names[Today.nameIndex(mode: ix.nameOfDay.mode, fixedIndex: nil, count: names.count, date: date)]
     }
 }
 
-/// mulberry32, bit-identical to the website's rng() (JS Math.imul / >>> 0 ⇒ wrapping UInt32 arithmetic).
-struct Mulberry32 {
-    private var a: UInt32
-    init(seed: UInt32) { a = seed }
-    mutating func next() -> Double {
-        a = a &+ 0x6D2B_79F5
-        var t = a
-        t = (t ^ (t >> 15)) &* (t | 1)
-        t ^= t &+ ((t ^ (t >> 7)) &* (t | 61))
-        return Double(t ^ (t >> 14)) / 4_294_967_296
-    }
-}
 
 enum NamesPackError: Error { case unknownName(Int) }
 
