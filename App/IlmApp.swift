@@ -42,7 +42,9 @@ struct RootView: View {
     var body: some View {
         ZStack {
             Group {
-                if Route.arg.hasPrefix("widgets") {
+                if Route.arg == "spotlight" {
+                    SpotlightProbeView()
+                } else if Route.arg.hasPrefix("widgets") {
                     WidgetsPreview(route: Route.arg)
                 } else if onboarded {
                     MainTabView()

@@ -1,5 +1,6 @@
 import CoreSpotlight
 import Foundation
+import SwiftUI
 import UniformTypeIdentifiers
 
 /// The iPhone's search (owner 2026-11-26 «بحث الجوال: ممتاز اعملها»): every name, every situation of «ماذا تشعر الآن؟»
@@ -9,22 +10,52 @@ enum SpotlightIndex {
     private static let stampKey = "spotlight.stamp"
     private static let schema = "1"
 
-    static func refresh() async {
+    /// Returns how many items were indexed (0 when the index was already current or indexing failed).
+    @discardableResult
+    static func refresh(force: Bool = false) async -> Int {
         let stamp = [schema, PackStore.currentVersion(.names) ?? "", PackStore.currentVersion(.sunan) ?? ""].joined(separator: "|")
-        guard UserDefaults.standard.string(forKey: stampKey) != stamp else { return }
+        guard force || UserDefaults.standard.string(forKey: stampKey) != stamp else { return 0 }
         let items = await Task.detached(priority: .utility) { SpotlightIndex.build() }.value
-        guard !items.isEmpty else { return }
+        guard !items.isEmpty else { return 0 }
         let index = CSSearchableIndex.default()
         do {
             try await index.deleteAllSearchableItems()
             try await index.indexSearchableItems(items)
             UserDefaults.standard.set(stamp, forKey: stampKey)
-        } catch {}
+            return items.count
+        } catch {
+            return 0
+        }
+    }
+
+    /// CI only: the titles of this app's indexed items that a word finds (title or keywords), as the iPhone's search
+    /// would match them — to see the index holds what it should.
+    static func probe(_ word: String) async -> [String] {
+        await withCheckedContinuation { (cont: CheckedContinuation<[String], Never>) in
+            let ctx = CSSearchQueryContext()
+            ctx.fetchAttributes = ["title"]
+            let q = CSSearchQuery(queryString: "title == \"*\(word)*\"cd || keywords == \"\(word)*\"cd", queryContext: ctx)
+            let lock = NSLock()
+            var found: [String] = []
+            q.foundItemsHandler = { items in
+                lock.lock()
+                found += items.compactMap { $0.attributeSet.title }
+                lock.unlock()
+            }
+            q.completionHandler = { _ in
+                lock.lock()
+                let out = found
+                lock.unlock()
+                cont.resume(returning: out)
+            }
+            q.start()
+        }
     }
 
     private static func item(_ id: String, _ domain: String, title: String, text: String, keywords: [String]) -> CSSearchableItem {
         let a = CSSearchableItemAttributeSet(contentType: .text)
         a.title = title
+        a.displayName = title
         a.contentDescription = text
         var all: [String] = keywords
         all.append(contentsOf: words(title))
@@ -80,6 +111,33 @@ enum SpotlightIndex {
         case "situation": nav.openPath([.names, .n(.situation(n))])
         case "sunanState": nav.openPath([.sunan, .s(.state(n))])
         default: break
+        }
+    }
+}
+
+/// CI only (`-route spotlight`): indexes now and shows what a few words find in the index.
+struct SpotlightProbeView: View {
+    @State private var lines: [String] = ["…"]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(lines, id: \.self) { Text($0).font(AppFont.sans(15)).foregroundStyle(.white) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
+        }
+        .background(Color.black.ignoresSafeArea())
+        .environment(\.layoutDirection, .rightToLeft)
+        .task {
+            let n = await SpotlightIndex.refresh(force: true)
+            var out = ["فُهرس الآن: \(n) عنصرًا"]
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            for w in ["رزق", "كرب", "الرحمن", "غفور", "النوم"] {
+                let hits = await SpotlightIndex.probe(w)
+                out.append("«\(w)»: \(hits.count) — " + hits.prefix(4).joined(separator: "، "))
+            }
+            lines = out
         }
     }
 }
