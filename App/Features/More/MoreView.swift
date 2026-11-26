@@ -14,6 +14,8 @@ struct MoreView: View {
     @AppStorage("evening.hour") private var eveningHour = 21
     @AppStorage("evening.minute") private var eveningMinute = 0
     @AppStorage(WidgetShare.key) private var widgetCollection = ""
+    @AppStorage(WidgetShare.lockKey) private var widgetLock = WidgetShare.same
+    @AppStorage(LiveToday.key) private var liveOn = false
     @ObservedObject private var sync = PackSync.shared
     @State private var auth: UNAuthorizationStatus?
     @State private var showAbout = Route.moreOpenAbout
@@ -35,6 +37,8 @@ struct MoreView: View {
                 reminderSection(t)
                 eveningSection(t)
                 widgetSection(t)
+                lockWidgetSection(t)
+                liveSection(t)
                 aboutSection(t)
                 accountSection(t)
                 Section {
@@ -79,6 +83,8 @@ struct MoreView: View {
         .onChange(of: eveningHour) { _, _ in ReminderScheduler.shared.reschedule() }
         .onChange(of: eveningMinute) { _, _ in ReminderScheduler.shared.reschedule() }
         .onChange(of: widgetCollection) { _, _ in Task { await WidgetShare.sync() } }
+        .onChange(of: widgetLock) { _, _ in Task { await WidgetShare.sync() } }
+        .onChange(of: liveOn) { _, _ in Task { await LiveToday.refresh(byUser: true) } }
     }
 
     // MARK: sections
@@ -253,33 +259,85 @@ struct MoreView: View {
         .listRowBackground(t.surface)
     }
 
-    /// «أداة الشاشة الرئيسية» (owner 2026-11-26): «تلقائي» — the day's name and sunnah — or a collection of «محفوظاتي».
+    /// «أداة الشاشة الرئيسية» (owner 2026-11-26): «تلقائي» — the day's name and sunnah —, one of them always, or a
+    /// collection of «محفوظاتي».
     private func widgetSection(_ t: Theme) -> some View {
         let cols = SavedStore.shared.collections.filter { !$0.items.isEmpty }
-        let current = cols.contains { $0.id == widgetCollection } ? widgetCollection : ""
+        let current = widgetValue(widgetCollection, cols, fallback: "")
         let signedIn = Account.shared.isSignedIn
         return Section {
-            widgetRow("تلقائي: اسم اليوم وسنّة اليوم", id: "", current: current, t)
+            widgetRow("تلقائي: اسم اليوم وسنّة اليوم", current == "", t) { widgetCollection = "" }
+            widgetRow("اسم اليوم دائمًا", current == WidgetShare.name, t) { widgetCollection = WidgetShare.name }
+            widgetRow("سنّة اليوم دائمًا", current == WidgetShare.sunnah, t) { widgetCollection = WidgetShare.sunnah }
             ForEach(cols) { c in
-                widgetRow("\(c.title) · \(c.items.count)", id: c.id, current: current, t)
+                widgetRow("\(c.title) · \(c.items.count)", current == c.id, t) { widgetCollection = c.id }
             }
         } header: {
             header("أداة الشاشة الرئيسية", t)
         } footer: {
-            footer(!signedIn ? "لتظهر في الأداة مجموعتك: سجّل الدخول، ثم أنشئ في «محفوظاتي» مجموعة من الأسماء والسنن والمواضع."
-                   : cols.isEmpty ? "أنشئ في «محفوظاتي» مجموعة من الأسماء والسنن والمواضع، ثم اخترها هنا لتظهر في الأداة."
-                   : current.isEmpty ? "تلقائي: يومًا اسم اليوم مع آية من مواضعه تتبدّل كل ساعة، ويومًا سنّة اليوم."
-                   : "تمر عناصر المجموعة في الأداة واحدًا كل ساعة، وزر «التالي» فيها ينقلك إلى ما بعده.", t)
+            footer(homeWidgetNote(current, signedIn: signedIn, hasCollections: !cols.isEmpty), t)
         }
         .listRowBackground(t.surface)
     }
 
-    private func widgetRow(_ title: String, id: String, current: String, _ t: Theme) -> some View {
-        Button { widgetCollection = id } label: {
+    /// «أداة شاشة القفل» (owner 2026-11-26): the same choices, on its own; by default it follows the home widget.
+    private func lockWidgetSection(_ t: Theme) -> some View {
+        let cols = SavedStore.shared.collections.filter { !$0.items.isEmpty }
+        let current = widgetValue(widgetLock, cols, fallback: WidgetShare.same)
+        return Section {
+            widgetRow("مثل أداة الشاشة الرئيسية", current == WidgetShare.same, t) { widgetLock = WidgetShare.same }
+            widgetRow("تلقائي: اسم اليوم وسنّة اليوم", current == "", t) { widgetLock = "" }
+            widgetRow("اسم اليوم دائمًا", current == WidgetShare.name, t) { widgetLock = WidgetShare.name }
+            widgetRow("سنّة اليوم دائمًا", current == WidgetShare.sunnah, t) { widgetLock = WidgetShare.sunnah }
+            ForEach(cols) { c in
+                widgetRow("\(c.title) · \(c.items.count)", current == c.id, t) { widgetLock = c.id }
+            }
+        } header: {
+            header("أداة شاشة القفل", t)
+        } footer: {
+            footer("حجم الأداة على شاشة القفل يحدده الآيفون ولا يكبر؛ وللعرض الكبير فعّل «العرض الكبير على شاشة القفل» أدناه. إضافة الأداة نفسها تكون من شاشة القفل: اضغط مطوّلًا ثم «تخصيص».", t)
+        }
+        .listRowBackground(t.surface)
+    }
+
+    /// «العرض الكبير على شاشة القفل» (owner 2026-11-26): the day's sunnah on a card as wide as the screen (a Live
+    /// Activity), until «تمّت» or the system's limit.
+    private func liveSection(_ t: Theme) -> some View {
+        Section {
+            Toggle(isOn: $liveOn) {
+                Text("العرض الكبير على شاشة القفل").font(AppFont.sans(17)).foregroundStyle(t.cream)
+            }
+            .tint(t.gold)
+        } header: {
+            header("العرض الكبير", t)
+        } footer: {
+            footer(liveOn ? "تظهر «سنّة اليوم» على شاشة القفل ببطاقة بعرض الشاشة حين تفتح التطبيق أول مرة في اليوم، وتبقى حتى تضغط «تمّت» أو نحو 8 ساعات (حدّ الآيفون)."
+                          : "بطاقة بعرض الشاشة على شاشة القفل فيها «سنّة اليوم» وثمرتها.", t)
+        }
+        .listRowBackground(t.surface)
+    }
+
+    private func homeWidgetNote(_ current: String, signedIn: Bool, hasCollections: Bool) -> String {
+        if current == WidgetShare.name { return "اسم اليوم كل يوم، مع آية من مواضعه تتبدّل كل ساعة." }
+        if current == WidgetShare.sunnah { return "سنّة اليوم كل يوم من «برنامج اليوم والليلة»، مع ثمرتها." }
+        if !current.isEmpty { return "تمر عناصر المجموعة في الأداة واحدًا كل ساعة، وزر «التالي» فيها ينقلك إلى ما بعده." }
+        if !signedIn { return "لتظهر في الأداة مجموعتك: سجّل الدخول، ثم أنشئ في «محفوظاتي» مجموعة من الأسماء والسنن والمواضع." }
+        if !hasCollections { return "أنشئ في «محفوظاتي» مجموعة من الأسماء والسنن والمواضع، ثم اخترها هنا لتظهر في الأداة." }
+        return "تلقائي: يومًا اسم اليوم مع آية من مواضعه تتبدّل كل ساعة، ويومًا سنّة اليوم."
+    }
+
+    /// The stored choice, or `fallback` when its collection is gone.
+    private func widgetValue(_ v: String, _ cols: [SavedCollection], fallback: String) -> String {
+        if ["", WidgetShare.name, WidgetShare.sunnah, WidgetShare.same].contains(v) { return v }
+        return cols.contains { $0.id == v } ? v : fallback
+    }
+
+    private func widgetRow(_ title: String, _ on: Bool, _ t: Theme, _ pick: @escaping () -> Void) -> some View {
+        Button(action: pick) {
             HStack {
                 Text(title).font(AppFont.sans(17)).foregroundStyle(t.cream).multilineTextAlignment(.leading)
                 Spacer(minLength: 8)
-                if current == id { Image(systemName: "checkmark").foregroundStyle(t.gold) }
+                if on { Image(systemName: "checkmark").foregroundStyle(t.gold) }
             }
             .contentShape(Rectangle())
         }

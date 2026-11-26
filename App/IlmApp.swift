@@ -10,6 +10,7 @@ struct IlmApp: App {
     init() {
         // before any pack is read: apply a version that finished downloading last time, drop stale downloads
         PackStore.prepareAtLaunch()
+        LiveToday.prepare()   // «تمّت» on the lock screen's card
     }
 
     var body: some Scene {
@@ -68,6 +69,7 @@ struct RootView: View {
             if p == .background { Task { await WidgetShare.sync() } }   // a collection edited meanwhile
             guard p == .active else { return }
             if onboarded { ReminderScheduler.shared.reschedule() }
+            if onboarded && !Route.isCI { Task { await LiveToday.refresh() } }   // the lock screen's card, once a day
             Task {
                 try? await Task.sleep(nanoseconds: 1_500_000_000) // after the first frame
                 await PackSync.shared.autoCheck()

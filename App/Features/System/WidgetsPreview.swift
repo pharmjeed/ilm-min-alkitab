@@ -53,6 +53,14 @@ struct WidgetsPreview: View {
         let e = TodayEntry(date: now, header: "سنّة اليوم", slide: s, action: .toName, lockHeader: "سنّة اليوم", lockSlide: s)
         title("أداة الشاشة الرئيسية — يوم السنّة، وشاشة القفل")
         lock(e)
+        title("العرض الكبير على شاشة القفل")
+        if let st = LiveToday.state(c, now) {
+            TodayLiveView(state: st)
+                .padding(16)
+                .frame(width: 338)
+                .background(WidgetLook.night)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+        }
         home(e, .systemSmall, 158, 158)
         home(e, .systemMedium, 338, 158)
         home(e, .systemLarge, 338, 354)

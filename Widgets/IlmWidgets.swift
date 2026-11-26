@@ -1,12 +1,14 @@
 import SwiftUI
 import WidgetKit
 
-/// The app's widgets (owner 2026-11-26): «اسم اليوم وسنّة اليوم» on the home screen, «اسم اليوم» on the lock screen.
+/// The app's widgets (owner 2026-11-26): «اسم اليوم وسنّة اليوم» on the home screen, «اسم اليوم» on the lock screen,
+/// and the lock screen's wide card (a Live Activity, `IlmLiveActivity.swift`).
 @main
 struct IlmWidgets: WidgetBundle {
     var body: some Widget {
         TodayWidget()
         TodayLockWidget()
+        TodayLiveActivity()
     }
 }
 
@@ -23,14 +25,14 @@ struct TodayProvider: TimelineProvider {
     func placeholder(in context: Context) -> TodayEntry { .placeholder }
 
     func getSnapshot(in context: Context, completion: @escaping (TodayEntry) -> Void) {
-        completion(TodayEntry.make(Date(), Self.content(), WidgetChoice.load()))
+        completion(TodayEntry.make(Date(), Self.content(), WidgetSetup.load()))
     }
 
     /// Now, then every hour for two days: the name's next position (or the collection's next item) each hour, and the
     /// day's name and sunnah from each new day (UTC midnight — when the app's «اسم اليوم» changes).
     func getTimeline(in context: Context, completion: @escaping (Timeline<TodayEntry>) -> Void) {
         let c = Self.content()
-        let choice = WidgetChoice.load()
+        let choice = WidgetSetup.load()
         let now = Date()
         let first = Today.hourStart(now)
         var entries = [TodayEntry.make(now, c, choice)]

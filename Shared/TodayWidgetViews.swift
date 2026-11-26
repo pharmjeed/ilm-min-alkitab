@@ -31,27 +31,40 @@ struct TodayEntry: TimelineEntry {
     let lockHeader: String
     let lockSlide: Slide?
 
-    static func make(_ date: Date, _ c: Today.Content, _ choice: WidgetChoice?) -> TodayEntry {
+    static func make(_ date: Date, _ c: Today.Content, _ setup: WidgetSetup) -> TodayEntry {
+        let h = face(setup.home, date, c, lock: false)
+        let l = face(setup.lock ?? setup.home, date, c, lock: true)
+        return TodayEntry(date: date, header: h.header, slide: h.slide, action: h.action,
+                          lockHeader: l.header, lockSlide: l.slide)
+    }
+
+    /// One widget's moment by its choice in «المزيد»: a collection, the day's name always, the day's sunnah always,
+    /// or «تلقائي» (a day each, «بدّل» between them). The lock screen takes a name's short position.
+    private static func face(_ f: WidgetSetup.Face, _ date: Date, _ c: Today.Content,
+                             lock: Bool) -> (header: String, slide: Slide?, action: Action?) {
         let hour = Today.hourNumber(date)
-        if let ch = choice, !ch.items.isEmpty {
+        if f.mode == "collection", let ch = f.choice, !ch.items.isEmpty {
             let k = hour + CollectionCursor.offset
             let n = ch.items.count
             let i = ((k % n) + n) % n
             let round = (k - i) / n   // how many times the collection went round: a name shows its next position
             let s = slide(ch.items[i], c, round)
-            let lock = ch.items[i].k == "name" ? short(s, round) : s
-            return TodayEntry(date: date, header: ch.title, slide: s, action: n > 1 ? .next : nil,
-                              lockHeader: ch.title, lockSlide: lock)
+            return (ch.title, lock && ch.items[i].k == "name" ? short(s, round) : s, n > 1 ? .next : nil)
         }
         let name = c.name(date).map { Slide.name($0, Today.verse(of: $0.id, slot: hour)) }
         let sunnah = c.sunnah(date).map(Slide.sunnah)
-        let showSunnah = TodaySwitch.showsSunnah(date) && sunnah != nil
-        let both = name != nil && sunnah != nil
-        let header = showSunnah ? "سنّة اليوم" : "اسم اليوم"
-        // the lock screen follows the home widget (owner 2026-11-26 «يظهر الاسم مع الموضع او السنة»)
-        return TodayEntry(date: date, header: header, slide: showSunnah ? sunnah : name,
-                          action: both ? (showSunnah ? .toName : .toSunnah) : nil,
-                          lockHeader: header, lockSlide: showSunnah ? sunnah : short(name, hour))
+        let auto = f.mode != "name" && f.mode != "sunnah"
+        let showSunnah: Bool
+        switch f.mode {
+        case "name": showSunnah = name == nil && sunnah != nil
+        case "sunnah": showSunnah = sunnah != nil
+        default: showSunnah = TodaySwitch.showsSunnah(date) && sunnah != nil
+        }
+        let both = auto && name != nil && sunnah != nil
+        // the lock screen follows its own choice (owner 2026-11-26 «يظهر الاسم مع الموضع او السنة»)
+        return (showSunnah ? "سنّة اليوم" : "اسم اليوم",
+                showSunnah ? sunnah : (lock ? short(name, hour) : name),
+                both ? (showSunnah ? .toName : .toSunnah) : nil)
     }
 
     /// For the lock screen: the name with one of its positions short enough for its box (else the hour's position).

@@ -75,6 +75,18 @@ day.json, deeds.json), all decoded off the main thread and cached.
 - content status (versions as dates in Arabic, bundled / downloaded, last check), feedback → the site's `/suggest`,
   «الحساب — قريبًا» placeholder, version line.
 
+- widgets (owner 2026-11-26): «أداة الشاشة الرئيسية» (`widget.collection`) and «أداة شاشة القفل» (`widget.lock`,
+  default `@same` = as the home widget) each take "" (تلقائي) | `@name` | `@sunnah` | a collection's id. `WidgetShare`
+  describes them as a `WidgetSetup` (home face, lock face) in the shared keychain group; the extension's
+  `TodayEntry.make` draws each face by its own choice. An app cannot add or remove a widget — the reader does.
+- «العرض الكبير على شاشة القفل» (`live.enabled`, off by default): a Live Activity — the only wide thing iOS allows on
+  the lock screen. `LiveToday` starts the day's sunnah card when the app comes to the front (once a day; iOS starts
+  one only from the foreground or by a server push, keeps it ~8 h active + 4 h on the lock screen); «تمّت»
+  (`TodayDoneIntent`, runs in the app) ends it. Attributes, intent and the card view: `Shared/TodayActivity.swift`;
+  the configuration and Dynamic Island: `Widgets/IlmLiveActivity.swift`; `NSSupportsLiveActivities` in project.yml.
+  Not built yet: the morning start by a server push (needs the Push Notifications capability, an APNs key on the
+  platform, and the push-to-start token sent to it).
+
 ## CI routes (ci/routes.txt `name|args[|wait]`)
 `more`, `moreupdate` (presses «تحقّق من التحديث»), `morebottom`, `moreabout`; `-appearance light`, `-textScale 2`;
 `notif` / `notiftap` with `-ciNotify YES` (provisional permission, schedules the real window; overlay of the pending

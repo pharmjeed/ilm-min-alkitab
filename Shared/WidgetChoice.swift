@@ -1,8 +1,8 @@
 import Foundation
 import Security
 
-/// What the home widget shows (owner 2026-11-26): «تلقائي» (the day's name and sunnah) or one of the reader's
-/// collections of «محفوظاتي», chosen in «المزيد». The app writes it; the widget extension reads it. It travels in a
+/// A collection of «محفوظاتي» shown by a widget (owner 2026-11-26), chosen in «المزيد» — see `WidgetSetup`. The app
+/// writes it; the widget extension reads it. It travels in a
 /// keychain item of the group both share (`keychain-access-groups`: TEAM.com.pharmjeed.ilmminalkitab.shared) — the
 /// first group of each, so an item added without a group lands there and a search without one finds it.
 struct WidgetChoice: Codable, Equatable {
@@ -32,31 +32,70 @@ struct WidgetChoice: Codable, Equatable {
         var link: String? = nil
     }
 
-    private static let service = "ilm.widget"
-    private static let account = "choice"
+    /// The item written before each widget had its own choice (`WidgetSetup`): one collection for both.
+    fileprivate static let legacyAccount = "choice"
 
-    private static var base: [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: service,
-         kSecAttrAccount as String: account]
-    }
-
-    /// The reader's choice; nil = «تلقائي».
-    static func load() -> WidgetChoice? {
-        var q = base
-        q[kSecReturnData as String] = true
-        q[kSecMatchLimit as String] = kSecMatchLimitOne
-        var out: CFTypeRef?
-        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let data = out as? Data,
+    fileprivate static func loadLegacy() -> WidgetChoice? {
+        guard let data = WidgetKeychain.read(legacyAccount),
               let c = try? JSONDecoder().decode(WidgetChoice.self, from: data), !c.items.isEmpty else { return nil }
         return c
     }
+}
 
-    /// Writes the choice (nil = «تلقائي»). Readable after the first unlock, so the lock screen can draw it.
-    static func save(_ c: WidgetChoice?) {
-        SecItemDelete(base as CFDictionary)
-        guard let c, !c.items.isEmpty, let data = try? JSONEncoder().encode(c) else { return }
-        var q = base
+/// What each widget shows (owner 2026-11-26 «اعدادات ظهور الودجت ... في اعدادات التطبيق»), chosen in «المزيد»: the
+/// home widget and the lock screen's one each have «تلقائي», «اسم اليوم دائمًا», «سنّة اليوم دائمًا» or a collection of
+/// «محفوظاتي». Same road as before: the app writes it into the shared keychain group, the extension reads it.
+struct WidgetSetup: Codable, Equatable {
+    struct Face: Codable, Equatable {
+        /// "auto" | "name" | "sunnah" | "collection"
+        var mode: String = "auto"
+        /// mode "collection": the collection, already described by the app
+        var choice: WidgetChoice? = nil
+    }
+
+    var home = Face()
+    /// nil = the same as the home widget
+    var lock: Face? = nil
+
+    private static let account = "setup"
+
+    static func load() -> WidgetSetup {
+        if let data = WidgetKeychain.read(account), let s = try? JSONDecoder().decode(WidgetSetup.self, from: data) {
+            return s
+        }
+        // written by a version before the setup: the one collection, on both widgets
+        if let c = WidgetChoice.loadLegacy() { return WidgetSetup(home: Face(mode: "collection", choice: c)) }
+        return WidgetSetup()
+    }
+
+    static func save(_ s: WidgetSetup) {
+        WidgetKeychain.write(account, try? JSONEncoder().encode(s))
+        WidgetKeychain.write(WidgetChoice.legacyAccount, nil)
+    }
+}
+
+/// A keychain item of the group the app and its widgets share. Readable after the first unlock, so the lock screen
+/// can draw it.
+enum WidgetKeychain {
+    private static func base(_ account: String) -> [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword,
+         kSecAttrService as String: "ilm.widget",
+         kSecAttrAccount as String: account]
+    }
+
+    static func read(_ account: String) -> Data? {
+        var q = base(account)
+        q[kSecReturnData as String] = true
+        q[kSecMatchLimit as String] = kSecMatchLimitOne
+        var out: CFTypeRef?
+        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess else { return nil }
+        return out as? Data
+    }
+
+    static func write(_ account: String, _ data: Data?) {
+        SecItemDelete(base(account) as CFDictionary)
+        guard let data else { return }
+        var q = base(account)
         q[kSecValueData as String] = data
         q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
         SecItemAdd(q as CFDictionary, nil)
