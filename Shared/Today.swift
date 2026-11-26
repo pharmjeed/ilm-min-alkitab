@@ -29,17 +29,53 @@ enum Today {
     /// The home widget alternates: the name one day, the sunnah the next.
     static func sunnahDay(_ date: Date) -> Bool { dayNumber(date) % 2 != 0 }
 
+    /// Hours since 1970 (UTC): the widgets move to the next position, or the next item of a collection, every hour
+    /// (owner 2026-11-26 «اجعلها بطريقة تعرض كل المواضع على مر الزمن»).
+    static func hourNumber(_ date: Date) -> Int { Int((date.timeIntervalSince1970 / 3600).rounded(.down)) }
+
+    static func hourStart(_ date: Date) -> Date { Date(timeIntervalSince1970: Double(hourNumber(date)) * 3600) }
+
+    /// Every position of a name in the name page's order: the extension's own file, or (inside the app) the file of
+    /// the extension embedded in it.
+    static func verses(of id: Int) -> [Verse] {
+        versesLock.lock()
+        defer { versesLock.unlock() }
+        if let hit = versesCache[id] { return hit }
+        let v = readVerses(id)
+        if versesCache.count > 40 { versesCache.removeAll() }
+        versesCache[id] = v
+        return v
+    }
+
+    /// The timeline asks for the same few names many times (an entry an hour): each file is read once.
+    nonisolated(unsafe) private static var versesCache: [Int: [Verse]] = [:]
+    private static let versesLock = NSLock()
+
+    private static func readVerses(_ id: Int) -> [Verse] {
+        let file = "widget-verses/\(id).json"
+        let own = Bundle.main.resourceURL?.appendingPathComponent(file)
+        let embedded = Bundle.main.builtInPlugInsURL?.appendingPathComponent("IlmWidgets.appex").appendingPathComponent(file)
+        for url in [own, embedded].compactMap({ $0 }) {
+            if let d = try? Data(contentsOf: url), let v = try? JSONDecoder().decode([Verse].self, from: d) { return v }
+        }
+        return []
+    }
+
+    /// The position shown at `slot` (an hour number): one after another, all of them over time.
+    static func verse(of id: Int, slot: Int) -> Verse? {
+        let v = verses(of: id)
+        return v.isEmpty ? nil : v[((slot % v.count) + v.count) % v.count]
+    }
+
     // MARK: content
 
     struct Name: Hashable {
         let id: Int
         let name: String
         let excerpt: String
-        /// «الموضع» of the name (owner 2026-11-26 «اريده مع الموضع الخاص به»): its first position, verbatim.
-        var verse: Verse? = nil
     }
 
-    /// An ayah of the names pack (NameCard.verse): the text verbatim, never cut.
+    /// A Quran position of a name (gen/widget-verses/<id>.json, from the names packs): the text verbatim, never cut.
     struct Verse: Hashable, Decodable {
         let s: Int
         let surah: String
@@ -72,13 +108,18 @@ enum Today {
             return Content(names: read(names), day: read(day))
         }
 
+        func name(id: Int) -> Name? {
+            guard let c = names?.names.first(where: { $0.id == id }) else { return nil }
+            return Name(id: c.id, name: c.name, excerpt: c.excerpt)
+        }
+
         func name(_ date: Date) -> Name? {
             guard let f = names, !f.names.isEmpty else { return nil }
             // as NamesRepo.nameOfDay: a fixed id that is missing falls back to the first name
             let fixed = f.nameOfDay.fixedId.map { id in f.names.firstIndex { $0.id == id } ?? 0 }
             let i = Today.nameIndex(mode: f.nameOfDay.mode, fixedIndex: fixed, count: f.names.count, date: date)
             let c = f.names[min(max(i, 0), f.names.count - 1)]
-            return Name(id: c.id, name: c.name, excerpt: c.excerpt, verse: c.verse)
+            return Name(id: c.id, name: c.name, excerpt: c.excerpt)
         }
 
         /// The starred sunan («ابدأ بهذه») of the given times, in the programme's order.
@@ -119,7 +160,6 @@ enum Today {
             let id: Int
             let name: String
             let excerpt: String
-            let verse: Verse?
         }
         let nameOfDay: Setting
         let names: [Card]

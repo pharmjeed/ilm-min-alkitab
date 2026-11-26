@@ -19,6 +19,8 @@ jobs:
           [ -n "${{ secrets.ASC_KEY_P8 }}" ] || { echo "missing secret ASC_KEY_P8"; exit 1; }
       - name: Tools
         run: brew install xcodegen && bash ci/select-xcode.sh
+      - name: Widget positions
+        run: python3 ci/widget-verses.py
       - name: Generate project
         run: xcodegen generate
       - name: App Store Connect key
@@ -39,13 +41,17 @@ jobs:
             archive > archive.log 2>&1 || { grep -E "error:|requires a provisioning|No Accounts|No profiles" archive.log | sort -u | head -60; tail -60 archive.log; exit 1; }
           tail -5 archive.log
       # An unsigned archive carries no entitlements, and the export re-signs with the entitlements it finds in the
-      # binary — so sign the archived app ad hoc with ours (Sign in with Apple) before exporting.
+      # binary — so sign the archived app ad hoc with ours (Sign in with Apple; the keychain group shared with the
+      # widgets, $(AppIdentifierPrefix) written out as the team id) before exporting.
       - name: Embed entitlements
         run: |
           APP=$(find build/Ilm.xcarchive/Products/Applications -maxdepth 1 -name '*.app' | head -1)
-          # the widget extension first (a bundle is signed inside out); it needs no entitlements
-          for X in "$APP"/PlugIns/*.appex; do [ -d "$X" ] && codesign --force --sign - --timestamp=none "$X"; done
-          codesign --force --sign - --timestamp=none --entitlements Config/IlmMinAlKitab.entitlements "$APP"
+          mkdir -p build/ent
+          for E in IlmMinAlKitab IlmWidgets; do sed "s/\$(AppIdentifierPrefix)/${TEAM}./" "Config/$E.entitlements" > "build/ent/$E.entitlements"; done
+          grep -q "${TEAM}.com.pharmjeed.ilmminalkitab.shared" build/ent/IlmWidgets.entitlements || { echo "keychain group not written out"; exit 1; }
+          # the widget extension first (a bundle is signed inside out)
+          for X in "$APP"/PlugIns/*.appex; do [ -d "$X" ] && codesign --force --sign - --timestamp=none --entitlements build/ent/IlmWidgets.entitlements "$X"; done
+          codesign --force --sign - --timestamp=none --entitlements build/ent/IlmMinAlKitab.entitlements "$APP"
           codesign -d --entitlements - "$APP" 2>/dev/null | grep -q applesignin || { echo "entitlements missing in the archive"; exit 1; }
       - name: Export locally and check the signed app
         run: |
@@ -55,6 +61,9 @@ jobs:
           APP=$(find build/check/Payload -maxdepth 1 -name '*.app' | head -1)
           codesign -d --entitlements - "$APP" 2>/dev/null | tee entitlements.txt
           grep -q applesignin entitlements.txt || { echo "Sign in with Apple entitlement missing from the signed app"; exit 1; }
+          grep -q "ilmminalkitab.shared" entitlements.txt || { echo "keychain group missing from the signed app"; exit 1; }
+          X=$(find "$APP/PlugIns" -maxdepth 1 -name '*.appex' | head -1)
+          codesign -d --entitlements - "$X" 2>/dev/null | tee widget-entitlements.txt | grep -q "ilmminalkitab.shared"             || { echo "keychain group missing from the signed widget"; exit 1; }
       - name: Export and upload to App Store Connect
         run: |
           sed "s/__TEAM__/$TEAM/" ci/ExportOptions.plist > build/ExportOptions.plist
@@ -71,5 +80,6 @@ jobs:
             archive.log
             export-local.log
             entitlements.txt
+            widget-entitlements.txt
             export.log
           if-no-files-found: ignore

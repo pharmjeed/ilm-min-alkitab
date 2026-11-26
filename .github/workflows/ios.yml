@@ -16,6 +16,8 @@ jobs:
         run: |
           brew install xcodegen
           bash ci/select-xcode.sh
+      - name: Widget positions
+        run: python3 ci/widget-verses.py
       - name: Generate project
         run: xcodegen generate
       - name: Build for simulator

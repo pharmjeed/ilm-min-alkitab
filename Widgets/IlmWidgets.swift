@@ -23,15 +23,19 @@ struct TodayProvider: TimelineProvider {
     func placeholder(in context: Context) -> TodayEntry { .placeholder }
 
     func getSnapshot(in context: Context, completion: @escaping (TodayEntry) -> Void) {
-        completion(TodayEntry.make(Date(), Self.content()))
+        completion(TodayEntry.make(Date(), Self.content(), WidgetChoice.load()))
     }
 
-    /// Now, then each new day (UTC midnight — when the app's «اسم اليوم» changes) for a week.
+    /// Now, then every hour for two days: the name's next position (or the collection's next item) each hour, and the
+    /// day's name and sunnah from each new day (UTC midnight — when the app's «اسم اليوم» changes).
     func getTimeline(in context: Context, completion: @escaping (Timeline<TodayEntry>) -> Void) {
         let c = Self.content()
-        var dates = [Date()]
-        for _ in 0..<7 { dates.append(Today.nextDay(after: dates[dates.count - 1])) }
-        completion(Timeline(entries: dates.map { TodayEntry.make($0, c) }, policy: .atEnd))
+        let choice = WidgetChoice.load()
+        let now = Date()
+        let first = Today.hourStart(now)
+        var entries = [TodayEntry.make(now, c, choice)]
+        for h in 1...48 { entries.append(TodayEntry.make(first.addingTimeInterval(Double(h) * 3600), c, choice)) }
+        completion(Timeline(entries: entries, policy: .atEnd))
     }
 }
 
@@ -41,7 +45,7 @@ struct TodayWidget: Widget {
             TodayHomeWidgetView(entry: entry)
         }
         .configurationDisplayName("اسم اليوم وسنّة اليوم")
-        .description("يومًا اسمٌ من الأسماء الحسنى ومعناه، ويومًا سنّةٌ وثمرتها؛ والزر يبدّل بينهما.")
+        .description("يومًا اسمٌ من الأسماء الحسنى وآية من مواضعه، ويومًا سنّةٌ وثمرتها؛ أو مجموعة تختارها من «محفوظاتي» في «المزيد».")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
@@ -52,7 +56,7 @@ struct TodayLockWidget: Widget {
             TodayLockWidgetView(entry: entry)
         }
         .configurationDisplayName("اسم اليوم")
-        .description("اسم اليوم وسطرٌ من معناه على شاشة القفل.")
+        .description("اسم اليوم وسطرٌ من معناه على شاشة القفل، أو مجموعتك من «محفوظاتي».")
         .supportedFamilies([.accessoryRectangular, .accessoryInline])
     }
 }

@@ -13,6 +13,7 @@ struct MoreView: View {
     @AppStorage("evening.enabled") private var eveningOn = true
     @AppStorage("evening.hour") private var eveningHour = 21
     @AppStorage("evening.minute") private var eveningMinute = 0
+    @AppStorage(WidgetShare.key) private var widgetCollection = ""
     @ObservedObject private var sync = PackSync.shared
     @State private var auth: UNAuthorizationStatus?
     @State private var showAbout = Route.moreOpenAbout
@@ -32,6 +33,7 @@ struct MoreView: View {
                 textSection(t)
                 reminderSection(t)
                 eveningSection(t)
+                widgetSection(t)
                 aboutSection(t)
                 accountSection(t)
                 Section {
@@ -73,6 +75,7 @@ struct MoreView: View {
         .onChange(of: eveningOn) { _, on in Task { await reminderToggled(on) } }
         .onChange(of: eveningHour) { _, _ in ReminderScheduler.shared.reschedule() }
         .onChange(of: eveningMinute) { _, _ in ReminderScheduler.shared.reschedule() }
+        .onChange(of: widgetCollection) { _, _ in Task { await WidgetShare.sync() } }
     }
 
     // MARK: sections
@@ -245,6 +248,39 @@ struct MoreView: View {
                              : "تذكير المساء موقوف.", t)
         }
         .listRowBackground(t.surface)
+    }
+
+    /// «أداة الشاشة الرئيسية» (owner 2026-11-26): «تلقائي» — the day's name and sunnah — or a collection of «محفوظاتي».
+    private func widgetSection(_ t: Theme) -> some View {
+        let cols = SavedStore.shared.collections.filter { !$0.items.isEmpty }
+        let current = cols.contains { $0.id == widgetCollection } ? widgetCollection : ""
+        let signedIn = Account.shared.isSignedIn
+        return Section {
+            widgetRow("تلقائي: اسم اليوم وسنّة اليوم", id: "", current: current, t)
+            ForEach(cols) { c in
+                widgetRow("\(c.title) · \(c.items.count)", id: c.id, current: current, t)
+            }
+        } header: {
+            header("أداة الشاشة الرئيسية", t)
+        } footer: {
+            footer(!signedIn ? "لتظهر في الأداة مجموعتك: سجّل الدخول، ثم أنشئ في «محفوظاتي» مجموعة من الأسماء والسنن والمواضع."
+                   : cols.isEmpty ? "أنشئ في «محفوظاتي» مجموعة من الأسماء والسنن والمواضع، ثم اخترها هنا لتظهر في الأداة."
+                   : current.isEmpty ? "تلقائي: يومًا اسم اليوم مع آية من مواضعه تتبدّل كل ساعة، ويومًا سنّة اليوم."
+                   : "تمر عناصر المجموعة في الأداة واحدًا كل ساعة، وزر «التالي» فيها ينقلك إلى ما بعده.", t)
+        }
+        .listRowBackground(t.surface)
+    }
+
+    private func widgetRow(_ title: String, id: String, current: String, _ t: Theme) -> some View {
+        Button { widgetCollection = id } label: {
+            HStack {
+                Text(title).font(AppFont.sans(17)).foregroundStyle(t.cream).multilineTextAlignment(.leading)
+                Spacer(minLength: 8)
+                if current == id { Image(systemName: "checkmark").foregroundStyle(t.gold) }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private var eveningBinding: Binding<Date> {

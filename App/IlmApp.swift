@@ -43,8 +43,7 @@ struct RootView: View {
         ZStack {
             Group {
                 if Route.arg.hasPrefix("widgets") {
-                    WidgetsPreview(sunnah: Route.arg == "widgets2",
-                                   ayahLength: Route.arg == "widgets3" ? 120 : Route.arg == "widgets4" ? 260 : nil)
+                    WidgetsPreview(route: Route.arg)
                 } else if onboarded {
                     MainTabView()
                 } else {
@@ -64,6 +63,7 @@ struct RootView: View {
         .onChange(of: appearance) { _, v in Appearance.apply(Appearance.from(v)) }
         .onChange(of: onboarded) { _, on in if on { ReminderScheduler.shared.reschedule() } }
         .onChange(of: phase, initial: true) { _, p in
+            if p == .background { Task { await WidgetShare.sync() } }   // a collection edited meanwhile
             guard p == .active else { return }
             if onboarded { ReminderScheduler.shared.reschedule() }
             Task {
@@ -118,7 +118,10 @@ struct MainTabView: View {
             Task { await PackSync.shared.activateReady(force: false) }
         }
         .task { probe = await ReminderProbe.runIfRequested() }
-        .task { if Account.shared.isSignedIn { await SavedStore.shared.reload() } }
+        .task {
+            if Account.shared.isSignedIn { await SavedStore.shared.reload() }
+            await WidgetShare.sync()   // the collection the home widget shows, as «محفوظاتي» has it now
+        }
     }
 }
 

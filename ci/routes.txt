@@ -81,3 +81,4 @@
 60b-widgets-sunnah|-onboarded YES -route widgets2
 60c-widgets-ayah-mid|-onboarded YES -route widgets3
 60d-widgets-ayah-long|-onboarded YES -route widgets4
+60e-widgets-collection|-onboarded YES -route widgets5

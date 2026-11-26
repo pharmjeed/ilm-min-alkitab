@@ -48,3 +48,6 @@ shots/
 *.xcodeproj/
 build.log
 DerivedData/
+
+# generated before xcodegen (ci/widget-verses.py)
+gen/

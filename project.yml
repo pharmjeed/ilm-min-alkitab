@@ -34,7 +34,7 @@ targets:
         INFOPLIST_FILE: App/Info.plist
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1"   # iPhone only (the iOS preset would otherwise make it universal)
-        CODE_SIGN_ENTITLEMENTS: Config/IlmMinAlKitab.entitlements   # Sign in with Apple
+        CODE_SIGN_ENTITLEMENTS: Config/IlmMinAlKitab.entitlements   # Sign in with Apple; the keychain group shared with the widgets
     dependencies:
       - target: IlmWidgets   # embedded in PlugIns
     info:
@@ -62,7 +62,9 @@ targets:
           - CFBundleURLName: com.pharmjeed.ilmminalkitab
             CFBundleURLSchemes: [ilm]
   # «اسم اليوم وسنّة اليوم» (home screen) and «اسم اليوم» (lock screen) — owner 2026-11-26. No App Group: the extension
-  # carries the two small pack files it reads (names/index, sunan/day), so its signing needs no new capability.
+  # carries the small pack files it reads (names/index, sunan/day, every name's positions from ci/widget-verses.py);
+  # the collection chosen in «المزيد» reaches it through a keychain group shared with the app (TEAM.* is in every
+  # profile, so no new capability).
   IlmWidgets:
     type: app-extension
     platform: iOS
@@ -75,9 +77,13 @@ targets:
         buildPhase: resources
       - path: assets/packs/sunan/day.pack
         buildPhase: resources
+      - path: gen/widget-verses
+        type: folder
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.pharmjeed.ilmminalkitab.widgets
+        CODE_SIGN_ENTITLEMENTS: Config/IlmWidgets.entitlements   # the shared keychain group
         PRODUCT_NAME: IlmWidgets
         INFOPLIST_FILE: Widgets/Info.plist
         CODE_SIGN_STYLE: Automatic

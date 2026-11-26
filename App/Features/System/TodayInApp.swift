@@ -7,7 +7,8 @@ extension Today.Content {
     }
 }
 
-/// Links into the app from its widgets: `ilm://name/<id>` (the name page), `ilm://sunnah/<state>/<fp>` (the sunnah page).
+/// Links into the app from its widgets: `ilm://name/<id>` (the name page), `ilm://sunnah/<state>/<fp>` (the sunnah page),
+/// `ilm://situation/<id>` and `ilm://state/<id>` (items of a collection of «محفوظاتي»).
 enum DeepLink {
     static func open(_ url: URL, _ nav: AppNav) {
         guard url.scheme == "ilm" else { return }
@@ -17,6 +18,10 @@ enum DeepLink {
             if let id = parts.first.flatMap({ Int($0) }) { nav.openName(id) }
         case "sunnah":
             if parts.count >= 2, let state = Int(parts[0]) { nav.openSunnah(fp: parts[1], stateId: state) }
+        case "situation":   // an item of a collection shown by the widget
+            if let id = parts.first.flatMap({ Int($0) }) { nav.openPath([.names, .n(.situation(id))]) }
+        case "state":
+            if let id = parts.first.flatMap({ Int($0) }) { nav.openPath([.sunan, .s(.state(id))]) }
         default:
             break
         }
