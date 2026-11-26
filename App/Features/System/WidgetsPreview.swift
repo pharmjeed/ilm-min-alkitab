@@ -49,9 +49,10 @@ struct WidgetsPreview: View {
     }
 
     @ViewBuilder private func sunnahDay(_ c: Today.Content, _ now: Date) -> some View {
-        let e = TodayEntry(date: now, header: "سنّة اليوم", slide: c.sunnah(now).map(TodayEntry.Slide.sunnah),
-                           action: .toName, lockHeader: "اسم اليوم", lockSlide: nil)
-        title("أداة الشاشة الرئيسية — يوم السنّة")
+        let s = c.sunnah(now).map(TodayEntry.Slide.sunnah)
+        let e = TodayEntry(date: now, header: "سنّة اليوم", slide: s, action: .toName, lockHeader: "سنّة اليوم", lockSlide: s)
+        title("أداة الشاشة الرئيسية — يوم السنّة، وشاشة القفل")
+        lock(e)
         home(e, .systemSmall, 158, 158)
         home(e, .systemMedium, 338, 158)
         home(e, .systemLarge, 338, 354)
@@ -93,8 +94,10 @@ struct WidgetsPreview: View {
     // MARK: pieces
 
     private func nameEntry(_ n: Today.Name?, _ now: Date, verse: Today.Verse? = nil) -> TodayEntry {
-        let s = n.map { TodayEntry.Slide.name($0, verse ?? Today.verse(of: $0.id, slot: Today.hourNumber(now))) }
-        return TodayEntry(date: now, header: "اسم اليوم", slide: s, action: .toSunnah, lockHeader: "اسم اليوم", lockSlide: s)
+        let hour = Today.hourNumber(now)
+        let s = n.map { TodayEntry.Slide.name($0, verse ?? Today.verse(of: $0.id, slot: hour)) }
+        let lock = n.map { TodayEntry.Slide.name($0, Today.shortVerse(of: $0.id, slot: hour) ?? verse ?? Today.verse(of: $0.id, slot: hour)) }
+        return TodayEntry(date: now, header: "اسم اليوم", slide: s, action: .toSunnah, lockHeader: "اسم اليوم", lockSlide: lock)
     }
 
     private func title(_ s: String) -> some View {
@@ -121,12 +124,12 @@ struct WidgetsPreview: View {
         return nameEntry(n, now, verse: b.v)
     }
 
-    /// A name of about twenty letters and the longest name, to see the lock box's smaller layouts.
+    /// A name with a short position (its ayah on the lock screen) and the longest name, to see the lock box's layouts.
     private func lockSamples(_ c: Today.Content, _ now: Date) -> [TodayEntry] {
         guard let all = c.names?.names, !all.isEmpty else { return [] }
-        let medium = all.min { abs($0.name.count - 22) < abs($1.name.count - 22) }!
+        let short = all.first { $0.id > 1 && Today.shortVerse(of: $0.id, slot: 0, maxLetters: 40) != nil } ?? all[0]
         let longest = all.max { $0.name.count < $1.name.count }!
-        return [medium, longest].map { nameEntry(Today.Name(id: $0.id, name: $0.name, excerpt: $0.excerpt), now) }
+        return [short, longest].map { nameEntry(Today.Name(id: $0.id, name: $0.name, excerpt: $0.excerpt), now) }
     }
 
     private func home(_ e: TodayEntry, _ f: WidgetFamily, _ w: CGFloat, _ h: CGFloat) -> some View {
