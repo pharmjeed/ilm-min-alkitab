@@ -82,4 +82,4 @@
 60c-widgets-ayah-mid|-onboarded YES -route widgets3
 60d-widgets-ayah-long|-onboarded YES -route widgets4
 60e-widgets-collection|-onboarded YES -route widgets5
-61-spotlight|-onboarded YES -route spotlight|16
+61-spotlight|-onboarded YES -route spotlight|45

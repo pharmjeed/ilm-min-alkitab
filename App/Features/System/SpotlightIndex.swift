@@ -12,25 +12,40 @@ enum SpotlightIndex {
 
     /// Returns how many items were indexed (0 when the index was already current or indexing failed).
     @discardableResult
-    static func refresh(force: Bool = false) async -> Int {
+    static func refresh(force: Bool = false, log: (@MainActor (String) -> Void)? = nil) async -> Int {
         let stamp = [schema, PackStore.currentVersion(.names) ?? "", PackStore.currentVersion(.sunan) ?? ""].joined(separator: "|")
         guard force || UserDefaults.standard.string(forKey: stampKey) != stamp else { return 0 }
+        await log?("يبني العناصر…")
         let items = await Task.detached(priority: .utility) { SpotlightIndex.build() }.value
+        await log?("بُني \(items.count) عنصرًا")
         guard !items.isEmpty else { return 0 }
         let index = CSSearchableIndex.default()
         do {
             try await index.deleteAllSearchableItems()
+            await log?("حُذف القديم")
             try await index.indexSearchableItems(items)
+            await log?("فُهرس الجديد")
             UserDefaults.standard.set(stamp, forKey: stampKey)
             return items.count
         } catch {
+            await log?("خطأ: \(error.localizedDescription)")
             return 0
         }
     }
 
     /// CI only: the titles of this app's indexed items that a word finds (title or keywords), as the iPhone's search
     /// would match them — to see the index holds what it should.
-    static func probe(_ word: String) async -> [String] {
+    static func probe(_ word: String) async -> [String]? {
+        await withTaskGroup(of: [String]?.self) { g in
+            g.addTask { await query(word) }
+            g.addTask { try? await Task.sleep(nanoseconds: 6_000_000_000); return nil }
+            let first = await g.next() ?? nil
+            g.cancelAll()
+            return first
+        }
+    }
+
+    private static func query(_ word: String) async -> [String] {
         await withCheckedContinuation { (cont: CheckedContinuation<[String], Never>) in
             let ctx = CSSearchQueryContext()
             ctx.fetchAttributes = ["title"]
@@ -130,14 +145,14 @@ struct SpotlightProbeView: View {
         .background(Color.black.ignoresSafeArea())
         .environment(\.layoutDirection, .rightToLeft)
         .task {
-            let n = await SpotlightIndex.refresh(force: true)
-            var out = ["فُهرس الآن: \(n) عنصرًا"]
-            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            lines = []
+            let n = await SpotlightIndex.refresh(force: true) { lines.append($0) }
+            lines.append("فُهرس الآن: \(n) عنصرًا")
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
             for w in ["رزق", "كرب", "الرحمن", "غفور", "النوم"] {
-                let hits = await SpotlightIndex.probe(w)
-                out.append("«\(w)»: \(hits.count) — " + hits.prefix(4).joined(separator: "، "))
+                guard let hits = await SpotlightIndex.probe(w) else { lines.append("«\(w)»: لم يُجب البحث"); continue }
+                lines.append("«\(w)»: \(hits.count) — " + hits.prefix(4).joined(separator: "، "))
             }
-            lines = out
         }
     }
 }

@@ -146,7 +146,7 @@ struct NameSnippet: View {
     private func ayah(_ v: Today.Verse) -> AttributedString {
         var a = AttributedString("﴿\(v.text)﴾")
         a.font = WidgetLook.amiri(19)
-        var r = AttributedString(" \(v.ref)")
+        var r = AttributedString(" \(v.ref.nonBreaking)")
         r.font = WidgetLook.sans(12)
         r.foregroundColor = .secondary
         return a + r

@@ -199,13 +199,13 @@ struct TodayWidgetView: View {
 
     @ViewBuilder private var lockContent: some View {
         switch entry.lockSlide {
-        case .name(let n, let v?):
+        case .name(let n, let v?) where n.name.count <= 32:   // a longer name needs the box's lines for itself
             ViewThatFits(in: .vertical) {
                 lockAyah(n, v, name: 17, ayah: 12)
                 lockAyah(n, v, name: 15, ayah: 11)
                 lockLadder(n.name, serif: true, line: "آيته \(v.ref)")
             }
-        case .name(let n, nil): lockLadder(n.name, serif: true, line: n.excerpt)
+        case .name(let n, let v): lockLadder(n.name, serif: true, line: v.map { "آيته \($0.ref)" } ?? n.excerpt)
         case .sunnah(let s): lockLadder(s.todo, serif: false, line: s.fruit.map { "← \($0)" })
         case .text(let t, let sub, _): lockLadder(t, serif: false, line: sub)
         case nil: Text(entry.lockHeader).font(WidgetLook.sans(13, .medium))
@@ -216,7 +216,7 @@ struct TodayWidgetView: View {
     private func lockAyah(_ n: Today.Name, _ v: Today.Verse, name: CGFloat, ayah: CGFloat) -> some View {
         var a = AttributedString("﴿\(v.text)﴾")
         a.font = WidgetLook.amiri(ayah)
-        var r = AttributedString(" \(v.ref)")
+        var r = AttributedString(" \(v.ref.nonBreaking)")
         r.font = WidgetLook.sans(9)
         r.foregroundColor = Color.primary.opacity(0.7)
         return VStack(alignment: .leading, spacing: 0) {
@@ -242,6 +242,7 @@ struct TodayWidgetView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(entry.lockHeader).font(WidgetLook.sans(12, .medium)).lineLimit(1).widgetAccentable()
             Text(title).font(serif ? WidgetLook.serif(size) : WidgetLook.sans(size * 0.8, .bold)).lineLimit(lines)
+                .minimumScaleFactor(lines == nil ? 1 : 0.65)
             if let text, let line { lockLine(line, text) }
         }
     }
@@ -320,7 +321,7 @@ struct TodayWidgetView: View {
         var ayah = AttributedString("﴿\(v.text)﴾")
         ayah.font = WidgetLook.amiri(size)
         ayah.foregroundColor = WidgetLook.cream
-        var ref = AttributedString(" \(v.ref)")
+        var ref = AttributedString(" \(v.ref.nonBreaking)")
         ref.font = WidgetLook.sans(max(10, size * 0.62))
         ref.foregroundColor = WidgetLook.cream.opacity(0.6)
         return VStack(alignment: .leading, spacing: small ? 2 : 4) {
@@ -342,7 +343,7 @@ struct TodayWidgetView: View {
         VStack(alignment: .leading, spacing: small ? 4 : 8) {
             Text(n.name).font(WidgetLook.serif(small ? 24 : large ? 40 : 30)).foregroundStyle(WidgetLook.cream)
                 .lineLimit(small ? 3 : 2).minimumScaleFactor(0.55)
-            Text(NotificationText.body(n.excerpt, max: small ? 50 : large ? 230 : 90))
+            Text(NotificationText.body(n.excerpt, max: small ? 50 : large ? 230 : 75))
                 .font(WidgetLook.sans(small ? 11 : large ? 15 : 13)).foregroundStyle(WidgetLook.cream.opacity(0.9))
                 .lineSpacing(large ? 6 : 3)
             Spacer(minLength: 0)
@@ -390,4 +391,9 @@ struct TodayWidgetView: View {
         Text("افتح «علم من الكتاب» مرة ليظهر هنا اسم اليوم.")
             .font(WidgetLook.sans(13)).foregroundStyle(WidgetLook.cream)
     }
+}
+
+extension String {
+    /// «[آل عمران: 117]» kept on one line.
+    var nonBreaking: String { replacingOccurrences(of: " ", with: "\u{00A0}") }
 }
