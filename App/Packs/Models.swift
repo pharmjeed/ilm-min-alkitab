@@ -55,6 +55,8 @@ struct NameCard: Decodable, Identifiable, Hashable {
     let category: String?
     /// «ترتيب الفئة»: the name's place in that classification (1…).
     let categoryOrder: Int?
+    /// The sub-group of a long «الفئة» by the form of the name (owner 2026-11-26), e.g. «مبدوءة بـ«رب»».
+    let form: String?
 }
 
 struct Door: Decodable, Identifiable, Hashable {

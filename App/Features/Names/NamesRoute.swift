@@ -16,6 +16,8 @@ enum NamesRoute: Hashable {
     case allNames(query: String = "")
     /// one main category of «كل الأسماء» and its names (app only)
     case nameCategory(String)
+    /// one sub-group of a category: its sub-category, or the names of one form (app only)
+    case nameGroup(category: String, group: String)
     /// /feel/anfus#<type>
     case anfus(focus: String? = nil)
     /// one sub-category of «ما بأنفسهم» (app only: the site lists them all on /feel/anfus)
@@ -40,6 +42,7 @@ struct NamesRouteView: View {
         case .name(let id, let tab, let focus): NamePageView(nameId: id, tab: tab, focus: focus)
         case .allNames(let query): AllNamesView(initialQuery: query)
         case .nameCategory(let title): NameCategoryView(title: title)
+        case .nameGroup(let category, let group): NameGroupView(category: category, group: group)
         case .anfus(let focus): AnfusView(focus: focus)
         case .anfusGroup(let slug): AnfusGroupView(slug: slug)
         case .ask(let question): AskView(initialQuestion: question)

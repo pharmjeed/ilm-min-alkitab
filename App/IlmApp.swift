@@ -176,6 +176,8 @@ enum Route {
         case "allnames": return [.names, .n(.allNames())]
         case "namecat": return [.names, .n(.allNames()), .n(.nameCategory("أسماء الألوهية"))]
         case "namecat2": return [.names, .n(.allNames()), .n(.nameCategory("توابع الأسماء الحسنى"))]
+        case "namegroup": return [.names, .n(.allNames()), .n(.nameCategory("أسماء الربوبية")), .n(.nameGroup(category: "أسماء الربوبية", group: "مبدوءة بـ«رب»"))]
+        case "namegroup2": return [.names, .n(.allNames()), .n(.nameCategory("توابع الأسماء الحسنى")), .n(.nameGroup(category: "توابع الأسماء الحسنى", group: "فئة «له» و«لله»"))]
         case "anfus": return [.names, .n(.feel), .n(.anfus())]
         case "anfusgroup":
             let slug = NamesRepo.shared.inner.first?.slug ?? ""

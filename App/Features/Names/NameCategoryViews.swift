@@ -37,6 +37,36 @@ enum NameCategories {
         var allNames: [NameCard] { subs.flatMap(\.names) }
     }
 
+    /// One sub-group a category page opens on (owner 2026-11-26: «عندما ندخل على كل تصنيف … تظهر تصنيفات فرعية»).
+    struct Part: Identifiable {
+        let title: String
+        var names: [NameCard]
+        var id: String { title }
+    }
+
+    /// «صيغ أخرى» — the names whose form makes no group of its own; always the last sub-group.
+    static let otherForms = "صيغ أخرى"
+
+    /// A list's names by «form» (the pack's sub-groups by the form of the name), in the order each first appears;
+    /// [] when the list is not split (its names carry no form).
+    static func formParts(_ names: [NameCard]) -> [Part] {
+        guard !names.isEmpty, names.allSatisfy({ $0.form != nil }) else { return [] }
+        var out: [Part] = []
+        for n in names {
+            let f = n.form!
+            if let i = out.firstIndex(where: { $0.title == f }) { out[i].names.append(n) } else { out.append(Part(title: f, names: [n])) }
+        }
+        if let i = out.firstIndex(where: { $0.title == otherForms }) { out.append(out.remove(at: i)) }
+        return out.count > 1 ? out : []
+    }
+
+    /// What a category page opens on: its sub-categories (الكفاية، التوابع), else the sub-groups of its names by their
+    /// form; [] → its names in one list.
+    static func parts(_ g: Group) -> [Part] {
+        if g.subs.count > 1 { return g.subs.map { Part(title: $0.title ?? g.title, names: $0.names) } }
+        return formParts(g.allNames)
+    }
+
     /// Whether the pack carries the classification (every name has a category).
     static func available(_ names: [NameCard]) -> Bool {
         !names.isEmpty && names.allSatisfy { $0.category != nil }
@@ -73,6 +103,7 @@ struct NameCategoryCard: View {
     var body: some View {
         let t = Theme(scheme)
         let first = group.allNames.prefix(4).map(\.name).joined(separator: " · ") + (group.count > 4 ? " …" : "")
+        let subForms = NameCategories.formParts(group.allNames).count
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 12) {
                 Text("\(number)").font(AppFont.sans(14)).foregroundStyle(t.gold)
@@ -86,6 +117,9 @@ struct NameCategoryCard: View {
             if group.subs.count > 1 {
                 Text(group.subs.compactMap(\.title).joined(separator: " · "))
                     .font(AppFont.sans(13)).foregroundStyle(t.gold.opacity(0.85)).lineSpacing(5)
+            } else if subForms > 1 {
+                Text("في \(Arabic.count(subForms, NameCategories.subs)) فرعية")
+                    .font(AppFont.sans(13)).foregroundStyle(t.gold.opacity(0.85))
             }
             Rectangle().fill(t.line).frame(height: 1)
             // owner 2026-11-24: the card's count removed
@@ -105,7 +139,7 @@ extension NameCategories {
     static let forms = Arabic.CountForms(one: "اسم واحد", two: "اسمان", few: "أسماء", many: "اسمًا")
 }
 
-/// One main category: its names in the classification's order, under their sub-category headings.
+/// One main category: its sub-groups (owner 2026-11-26), or — when it has none — its names in the classification's order.
 struct NameCategoryView: View {
     @Environment(\.colorScheme) private var scheme
     @EnvironmentObject private var nav: AppNav
@@ -119,6 +153,7 @@ struct NameCategoryView: View {
         ScrollView {
             if let k {
                 let g = groups[k]
+                let parts = NameCategories.parts(g)
                 let prev = k > 0 ? groups[k - 1] : nil
                 let next = k + 1 < groups.count ? groups[k + 1] : nil
                 VStack(alignment: .leading, spacing: 0) {
@@ -127,7 +162,7 @@ struct NameCategoryView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("كل الأسماء").font(AppFont.sans(14)).foregroundStyle(t.gold)
                         Text(g.title).font(AppFont.serif(30)).foregroundStyle(t.cream).lineSpacing(4)
-                        Text(Arabic.count(g.count, NameCategories.forms) + (g.subs.count > 1 ? " في \(Arabic.count(g.subs.count, NameCategories.subs))" : ""))
+                        Text(Arabic.count(g.count, NameCategories.forms) + (parts.count > 1 ? " في \(Arabic.count(parts.count, NameCategories.subs))" : ""))
                             .font(AppFont.sans(16)).foregroundStyle(t.muted)
                             .padding(.top, 4)
                     }
@@ -135,21 +170,20 @@ struct NameCategoryView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .siteCard(t, radius: 16, padding: 20)
 
-                    ForEach(g.subs) { s in
-                        if let st = s.title {
-                            HStack(alignment: .lastTextBaseline) {
-                                Text(st).font(AppFont.serif(22)).foregroundStyle(t.cream)
-                                Spacer(minLength: 8)
-                                Text(Arabic.count(s.names.count, NameCategories.forms)).font(AppFont.sans(13)).foregroundStyle(t.gold)
-                            }
-                            .padding(.top, 28)
-                        }
+                    if parts.count > 1 {
                         LazyVStack(spacing: 12) {
-                            ForEach(s.names) { n in
+                            ForEach(Array(parts.enumerated()), id: \.element.id) { i, p in
+                                NamesLink(.nameGroup(category: g.title, group: p.title)) { NamePartCard(part: p, number: i + 1) }
+                            }
+                        }
+                        .padding(.top, 16)
+                    } else {
+                        LazyVStack(spacing: 12) {
+                            ForEach(g.allNames) { n in
                                 NamesLink(.name(n.id)) { NameCardView(card: n) }
                             }
                         }
-                        .padding(.top, s.title == nil ? 16 : 12)
+                        .padding(.top, 16)
                     }
 
                     FlowLayout(spacing: 8, lineSpacing: 8) {
@@ -172,6 +206,108 @@ struct NameCategoryView: View {
 
 extension NameCategories {
     static let subs = Arabic.CountForms(one: "فئة واحدة", two: "فئتين", few: "فئات", many: "فئة")
+}
+
+/// One sub-group on a category page: its title, a glimpse of its first names, its count.
+struct NamePartCard: View {
+    @Environment(\.colorScheme) private var scheme
+    let part: NameCategories.Part
+    let number: Int
+
+    var body: some View {
+        let t = Theme(scheme)
+        let first = part.names.prefix(3).map(\.name).joined(separator: " · ") + (part.names.count > 3 ? " …" : "")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 12) {
+                Text("\(number)").font(AppFont.sans(13)).foregroundStyle(t.gold)
+                    .frame(width: 32, height: 32)
+                    .overlay(Circle().stroke(t.gold.opacity(0.6), lineWidth: 1))
+                Text(part.title).font(AppFont.serif(20)).foregroundStyle(t.cream)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+            }
+            Text(first).font(AppFont.sans(14)).foregroundStyle(t.muted).lineSpacing(6).lineLimit(2)
+            HStack {
+                Text(Arabic.count(part.names.count, NameCategories.forms)).foregroundStyle(t.muted)
+                Spacer(minLength: 8)
+                Text("افتح ←").foregroundStyle(t.gold)
+            }
+            .font(AppFont.sans(13))
+        }
+        .multilineTextAlignment(.leading)
+        .siteCard(t, radius: 14)
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+/// One sub-group's names (a sub-category, or the names of one form); a long sub-category («فئة «له» و«لله»») shows
+/// its names under the headings of their forms.
+struct NameGroupView: View {
+    @Environment(\.colorScheme) private var scheme
+    @EnvironmentObject private var nav: AppNav
+    let category: String
+    let group: String
+    private let repo = NamesRepo.shared
+
+    var body: some View {
+        let t = Theme(scheme)
+        let g = NameCategories.groups(repo.names).first { $0.title == category }
+        let parts = g.map(NameCategories.parts) ?? []
+        let k = parts.firstIndex { $0.title == group }
+        ScrollView {
+            if let g, let k {
+                let p = parts[k]
+                let inner = NameCategories.formParts(p.names)
+                let sections = inner.isEmpty ? [NameCategories.Part(title: "", names: p.names)] : inner
+                let prev = k > 0 ? parts[k - 1] : nil
+                let next = k + 1 < parts.count ? parts[k + 1] : nil
+                VStack(alignment: .leading, spacing: 0) {
+                    CrumbsView(trail: [Crumb("كل الأسماء", .allNames()), Crumb(g.title, .nameCategory(g.title))], current: p.title)
+                        .padding(.bottom, 16)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(g.title).font(AppFont.sans(14)).foregroundStyle(t.gold)
+                        Text(p.title).font(AppFont.serif(28)).foregroundStyle(t.cream).lineSpacing(4)
+                        Text(Arabic.count(p.names.count, NameCategories.forms) + (inner.count > 1 ? " في \(Arabic.count(inner.count, NameCategories.subs))" : ""))
+                            .font(AppFont.sans(16)).foregroundStyle(t.muted)
+                            .padding(.top, 4)
+                    }
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .siteCard(t, radius: 16, padding: 20)
+
+                    ForEach(sections) { s in
+                        if !s.title.isEmpty {
+                            HStack(alignment: .lastTextBaseline) {
+                                Text(s.title).font(AppFont.serif(22)).foregroundStyle(t.cream)
+                                Spacer(minLength: 8)
+                                Text(Arabic.count(s.names.count, NameCategories.forms)).font(AppFont.sans(13)).foregroundStyle(t.gold)
+                            }
+                            .padding(.top, 28)
+                        }
+                        LazyVStack(spacing: 12) {
+                            ForEach(s.names) { n in
+                                NamesLink(.name(n.id)) { NameCardView(card: n) }
+                            }
+                        }
+                        .padding(.top, s.title.isEmpty ? 16 : 12)
+                    }
+
+                    FlowLayout(spacing: 8, lineSpacing: 8) {
+                        if let prev {
+                            CategoryBackLink(text: "→ \(prev.title)") { nav.replaceLastNames(.nameGroup(category: g.title, group: prev.title)) }
+                        }
+                        CategoryBackLink(text: g.title) { nav.open(.nameCategory(g.title)) }
+                        if let next {
+                            CategoryBackLink(text: "\(next.title) ←") { nav.replaceLastNames(.nameGroup(category: g.title, group: next.title)) }
+                        }
+                    }
+                    .padding(.top, 32)
+                }
+                .padding(16).padding(.bottom, 24)
+            }
+        }
+        .namesScreen("كل الأسماء", t)
+    }
 }
 
 private struct CategoryBackLink: View {
