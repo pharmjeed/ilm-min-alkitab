@@ -1,13 +1,16 @@
 import ActivityKit
 import Foundation
 
-/// «العرض الكبير على شاشة القفل» (owner 2026-11-26), switched on in «المزيد»: starts the day's card (a Live Activity)
+/// «العرض الكبير على شاشة القفل» (owner 2026-11-26), on by default and switched in «المزيد»: starts the day's card (a Live Activity)
 /// when the app comes to the front — once a day, so a card the reader swiped away or ended with «تمّت» does not come
 /// back until the next day. iOS only lets an app start one while it is in front (or by a push from a server), keeps
 /// it active for about 8 hours and removes it from the lock screen 4 hours later.
 @MainActor
 enum LiveToday {
     static let key = "live.enabled"
+    /// On unless switched off in «المزيد» (owner 2026-11-26: everything is enabled from the first launch, and changed
+    /// afterwards in the app's settings).
+    static var isOn: Bool { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
     private static let shownKey = "live.shown.day"
 
     /// «تمّت» on the card runs inside the app: call once at launch.
@@ -35,7 +38,7 @@ enum LiveToday {
         let d = UserDefaults.standard
         let day = Today.dayNumber(now)
         let running = Activity<TodayActivityAttributes>.activities
-        guard d.bool(forKey: key), ActivityAuthorizationInfo().areActivitiesEnabled, let s = state(.app, now) else {
+        guard isOn, ActivityAuthorizationInfo().areActivitiesEnabled, let s = state(.app, now) else {
             for a in running { await a.end(nil, dismissalPolicy: .immediate) }
             return
         }

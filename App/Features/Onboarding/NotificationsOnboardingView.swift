@@ -55,7 +55,11 @@ private struct NotificationsPopup: View {
                 .padding(.top, 18)
             Button {
                 UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in
-                    DispatchQueue.main.async { onDone() }
+                    DispatchQueue.main.async {
+                        onDone()
+                        // the lock screen's card from the first day: iOS asks about it on the lock screen itself
+                        Task { await LiveToday.refresh(byUser: true) }
+                    }
                 }
             } label: {
                 Text("فعّل الإشعارات").font(AppFont.sans(18, .bold))
@@ -64,7 +68,7 @@ private struct NotificationsPopup: View {
                     .foregroundStyle(Palette.night)
             }
             .padding(.top, 20)
-            Text("إشعارٌ واحد في الصباح، ويمكنك تغيير وقته من «المزيد».")
+            Text("إشعارٌ في الصباح، و«سنّة اليوم» ببطاقة على شاشة القفل. تغيّر ذلك كله من «المزيد».")
                 .font(AppFont.sans(13)).foregroundStyle(t.muted)
                 .multilineTextAlignment(.center)
                 .padding(.top, 10)

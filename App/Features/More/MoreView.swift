@@ -15,7 +15,7 @@ struct MoreView: View {
     @AppStorage("evening.minute") private var eveningMinute = 0
     @AppStorage(WidgetShare.key) private var widgetCollection = ""
     @AppStorage(WidgetShare.lockKey) private var widgetLock = WidgetShare.same
-    @AppStorage(LiveToday.key) private var liveOn = false
+    @AppStorage(LiveToday.key) private var liveOn = true
     @ObservedObject private var sync = PackSync.shared
     @State private var auth: UNAuthorizationStatus?
     @State private var showAbout = Route.moreOpenAbout
