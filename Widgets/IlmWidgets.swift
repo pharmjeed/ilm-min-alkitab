@@ -9,6 +9,10 @@ struct IlmWidgets: WidgetBundle {
     var body: some Widget {
         TodayWidget()
         TodayLiveActivity()
+        if #available(iOS 18.0, *) {   // «مركز التحكم» (owner 2026-11-27): IlmControls.swift
+            NameOfDayControl()
+            SunnahOfDayControl()
+        }
     }
 }
 

@@ -7,6 +7,24 @@ extension Today.Content {
     }
 }
 
+/// «مركز التحكم» (owner 2026-11-27): the controls' intents run in the app and open the day's name or sunnah — through
+/// the same road as a tapped notification, so a cold start waits for the tab shell.
+enum TodayControls {
+    static func prepare() {
+        TodayControlHook.open = { what in
+            await MainActor.run {
+                let c = Today.Content.app, now = Date()
+                let router = NotificationRouter.shared
+                if what == "sunnah", let s = c.sunnah(now) {
+                    router.pending = .init(target: .sunnah(fp: s.fp, stateId: s.stateId))
+                } else if let n = c.name(now) {
+                    router.pending = .init(target: .name(n.id))
+                }
+            }
+        }
+    }
+}
+
 /// Links into the app from its widgets: `ilm://name/<id>` (the name page), `ilm://sunnah/<state>/<fp>` (the sunnah page),
 /// `ilm://situation/<id>` and `ilm://state/<id>` (items of a collection of «محفوظاتي»).
 enum DeepLink {

@@ -116,6 +116,8 @@ private struct SunanItemContent: View {
                 CopyPill(label: "نسخ", text: "\(item.easy) (\(item.ref))\n\(url.absoluteString)")
                 SharePill(title: "\(item.easy) — \(SunanText.title)", text: "\(item.easy) (\(item.ref))", url: url,
                           card: SunanText.shareCard(item, state: state))
+                // «المنبّه» (owner 2026-11-27): an alarm for this sunnah at the reader's time (iOS 26+)
+                AlarmPill(fp: item.fp, stateId: state.id, title: SunanText.easyParts(item.easy).cause)
             }
             .padding(.top, 16)
         }

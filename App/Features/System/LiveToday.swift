@@ -56,6 +56,12 @@ enum LiveToday {
         }
     }
 
+    /// «تمّت» on the evening notification (owner 2026-11-27): the card ends, and does not start again today.
+    static func finishToday(now: Date = Date()) async {
+        UserDefaults.standard.set(Today.dayNumber(now), forKey: shownKey)
+        await end()
+    }
+
     static func end() async {
         for a in Activity<TodayActivityAttributes>.activities { await a.end(nil, dismissalPolicy: .immediate) }
     }

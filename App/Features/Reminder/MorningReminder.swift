@@ -120,6 +120,8 @@ final class ReminderScheduler {
             content.sound = .default
             content.threadIdentifier = thread
             content.userInfo = info
+            // its buttons: «اسم آخر» on a name, «تمّت» and «سنّة أخرى» on a sunnah
+            content.categoryIdentifier = thread == "evening" ? NotificationActions.sunnahCategory : NotificationActions.nameCategory
             let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: fire)
             let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
             do {
@@ -139,6 +141,68 @@ final class ReminderScheduler {
 }
 
 // NotificationText (the shortened excerpt) lives in Shared/Today.swift — the widget uses it too.
+
+/// The notifications' buttons (owner 2026-11-27), shown when the reader presses on a notification: on a name «اسم آخر»
+/// (another name arrives at once), on a sunnah «تمّت» (ends the day's card on the lock screen) and «سنّة أخرى». They
+/// run in the background, without opening the app.
+enum NotificationActions {
+    static let nameCategory = "name"
+    static let sunnahCategory = "sunnah"
+    static let anotherName = "another-name"
+    static let anotherSunnah = "another-sunnah"
+    static let done = "done"
+    /// Sent by the buttons; not touched by the morning / evening rescheduling.
+    static let extraPrefix = "extra-"
+
+    static func register() {
+        let another = UNNotificationAction(identifier: anotherName, title: "اسم آخر", options: [],
+                                           icon: UNNotificationActionIcon(systemImageName: "arrow.triangle.2.circlepath"))
+        let finished = UNNotificationAction(identifier: done, title: "تمّت", options: [],
+                                            icon: UNNotificationActionIcon(systemImageName: "checkmark.circle"))
+        let otherSunnah = UNNotificationAction(identifier: anotherSunnah, title: "سنّة أخرى", options: [],
+                                               icon: UNNotificationActionIcon(systemImageName: "arrow.triangle.2.circlepath"))
+        UNUserNotificationCenter.current().setNotificationCategories([
+            UNNotificationCategory(identifier: nameCategory, actions: [another], intentIdentifiers: []),
+            UNNotificationCategory(identifier: sunnahCategory, actions: [finished, otherSunnah], intentIdentifiers: []),
+        ])
+    }
+
+    /// Runs a button; false when the response is a plain tap (the page opens).
+    static func handle(_ action: String) async -> Bool {
+        switch action {
+        case anotherName: await sendRandomName(); return true
+        case anotherSunnah: await sendRandomSunnah(); return true
+        case done: await LiveToday.finishToday(); return true
+        default: return false
+        }
+    }
+
+    private static func sendRandomName() async {
+        let c = await MainActor.run { Today.Content.app }
+        guard let id = c.names?.names.randomElement()?.id, let n = c.name(id: id) else { return }
+        await send(title: "اسم من أسماء الله: \(n.name)", body: NotificationText.body(n.excerpt),
+                   info: ["route": "name", "nameId": n.id], category: nameCategory, thread: "morning")
+    }
+
+    private static func sendRandomSunnah() async {
+        guard let s = await SiriText.randomSunnah() else { return }
+        await send(title: "سنّة · \(s.time)", body: s.fruit.map { "\(s.todo) ← \($0)" } ?? s.todo,
+                   info: ["route": "sunnah", "fp": s.fp, "stateId": s.stateId], category: sunnahCategory, thread: "evening")
+    }
+
+    private static func send(title: String, body: String, info: [AnyHashable: Any], category: String, thread: String) async {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        content.threadIdentifier = thread
+        content.userInfo = info
+        content.categoryIdentifier = category
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        try? await UNUserNotificationCenter.current()
+            .add(UNNotificationRequest(identifier: extraPrefix + UUID().uuidString, content: content, trigger: trigger))
+    }
+}
 
 /// Notification taps → the name or sunnah page (cold start included: the request waits until the tab shell consumes it).
 final class NotificationRouter: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
@@ -179,8 +243,13 @@ final class NotificationRouter: NSObject, ObservableObject, UNUserNotificationCe
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
-        open(userInfo: response.notification.request.content.userInfo)
-        completionHandler()
+        let action = response.actionIdentifier
+        let info = response.notification.request.content.userInfo
+        Task {
+            // a button of the notification (NotificationActions), else a tap: the page
+            if await !NotificationActions.handle(action) { open(userInfo: info) }
+            completionHandler()
+        }
     }
 
     /// The morning notification also shows while the app is open.

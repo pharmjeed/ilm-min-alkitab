@@ -23,6 +23,8 @@ struct MoreView: View {
     @State private var signingIn = false
     @State private var confirmDelete = false
     @State private var showSearchCheck = false
+    @State private var showWallpaper = Route.arg == "wallpaper"
+    @State private var alarms: [SunnahAlarmRecord] = []
 
     static let sampleAyah = "﴿وَلِلَّهِ الْأَسْمَاءُ الْحُسْنَىٰ فَادْعُوهُ بِهَا﴾"
 
@@ -37,6 +39,9 @@ struct MoreView: View {
                 eveningSection(t)
                 widgetSection(t)
                 liveSection(t)
+                wallpaperSection(t)
+                if #available(iOS 26.0, *) { alarmsSection(t) }
+                controlsSection(t)
                 aboutSection(t)
                 accountSection(t)
                 Section {
@@ -66,6 +71,7 @@ struct MoreView: View {
         .navigationDestination(isPresented: $showAbout) { MarkdownPageView(page: .about) }
         .navigationDestination(isPresented: $showFeedback) { FeedbackView() }
         .navigationDestination(isPresented: $showSearchCheck) { SpotlightProbeView() }
+        .navigationDestination(isPresented: $showWallpaper) { WallpaperPage() }
         .sheet(isPresented: $signingIn) { SaveSignInSheet(item: nil) }
         .confirmationDialog("حذف الحساب", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("احذف حسابي نهائيًا", role: .destructive) { Task { _ = await Account.shared.deleteAccount() } }
@@ -74,6 +80,7 @@ struct MoreView: View {
             Text("يُحذف حسابك وكل ما حفظته فيه، ولا يمكن استرجاعه.")
         }
         .onChange(of: phase) { _, p in if p == .active { Task { await refreshAuth() } } }
+        .onAppear { loadAlarms() }
         .onChange(of: reminderOn) { _, on in Task { await reminderToggled(on) } }
         .onChange(of: hour) { _, _ in ReminderScheduler.shared.reschedule() }
         .onChange(of: minute) { _, _ in ReminderScheduler.shared.reschedule() }
@@ -273,6 +280,73 @@ struct MoreView: View {
             header("أداة الشاشة الرئيسية", t)
         } footer: {
             footer(homeWidgetNote(current, signedIn: signedIn, hasCollections: !cols.isEmpty), t)
+        }
+        .listRowBackground(t.surface)
+    }
+
+    /// «خلفية الشاشة» (owner 2026-11-27): the day's name as a wallpaper picture (Wallpaper.swift).
+    private func wallpaperSection(_ t: Theme) -> some View {
+        Section {
+            Button { showWallpaper = true } label: {
+                HStack {
+                    rowLabel(t, "photo", "خلفية اسم اليوم")
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.left").font(.footnote).foregroundStyle(t.muted)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .id("wallpaper")
+        } header: {
+            header("خلفية الشاشة", t)
+        } footer: {
+            footer("صورة بحجم الشاشة فيها اسم اليوم وآية من مواضعه، تحفظها خلفيةً للجوال، أو تجعلها تتغيّر وحدها كل صباح.", t)
+        }
+        .listRowBackground(t.surface)
+    }
+
+    /// «منبّهات السنن» (owner 2026-11-27): the alarms added from the sunan pages (SunnahAlarms.swift), iOS 26+.
+    @available(iOS 26.0, *)
+    private func alarmsSection(_ t: Theme) -> some View {
+        Section {
+            ForEach(alarms) { a in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(a.title).font(AppFont.sans(16)).foregroundStyle(t.cream).lineLimit(2)
+                    Text("\(a.timeText) · \(a.daysText)").font(AppFont.sans(13)).foregroundStyle(t.gold)
+                }
+                .swipeActions {
+                    Button(role: .destructive) {
+                        SunnahAlarms.remove(a.id)
+                        loadAlarms()
+                    } label: { Text("حذف") }
+                }
+            }
+        } header: {
+            header("منبّهات السنن", t)
+        } footer: {
+            footer(alarms.isEmpty
+                   ? "أضف منبّهًا لأي سنّة من صفحتها بزر «منبّه»: يرنّ في الوقت والأيام التي تختارها، كساعة الجمعة."
+                   : "لحذف منبّه اسحبه إلى اليسار. وتضيف غيره من صفحة أي سنّة بزر «منبّه».", t)
+        }
+        .listRowBackground(t.surface)
+    }
+
+    private func loadAlarms() {
+        if #available(iOS 26.0, *) {
+            SunnahAlarms.prune()
+            alarms = SunnahAlarms.records
+        }
+    }
+
+    /// «مركز التحكم» (owner 2026-11-27): how to add the two buttons (Widgets/IlmControls.swift).
+    private func controlsSection(_ t: Theme) -> some View {
+        Section {
+            Text("اسحب من أعلى يمين الشاشة إلى الأسفل، ثم اضغط مطوّلًا على مكان فارغ، ثم «إضافة عنصر تحكم»، وابحث عن «علم من الكتاب» واختر «اسم اليوم» أو «سنّة اليوم».")
+                .font(AppFont.sans(15)).foregroundStyle(t.cream).lineSpacing(5)
+        } header: {
+            header("مركز التحكم", t)
+        } footer: {
+            footer("وتستطيع أن تضع الزر نفسه مكان المصباح أو الكاميرا أسفل شاشة القفل: اضغط مطوّلًا على شاشة القفل، ثم «تخصيص».", t)
         }
         .listRowBackground(t.surface)
     }

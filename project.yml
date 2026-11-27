@@ -48,6 +48,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true   # «العرض الكبير على شاشة القفل» (owner 2026-11-26)
+        NSAlarmKitUsageDescription: "ليرنّ منبّه السنّة في الوقت والأيام التي تختارها."   # «المنبّه» (owner 2026-11-27)
         UILaunchScreen:
           UIColorName: LaunchBackground
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]

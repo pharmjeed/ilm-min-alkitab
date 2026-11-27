@@ -86,6 +86,11 @@ struct IlmShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "سنّة اليوم",
             systemImageName: "leaf")
+        AppShortcut(
+            intent: NameWallpaperIntent(),
+            phrases: ["خلفية من \(.applicationName)"],
+            shortTitle: "خلفية اسم اليوم",
+            systemImageName: "photo")
     }
 }
 

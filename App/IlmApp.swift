@@ -11,6 +11,7 @@ struct IlmApp: App {
         // before any pack is read: apply a version that finished downloading last time, drop stale downloads
         PackStore.prepareAtLaunch()
         LiveToday.prepare()   // «تمّت» on the lock screen's card
+        TodayControls.prepare()   // the Control Center buttons
     }
 
     var body: some Scene {
@@ -27,6 +28,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = NotificationRouter.shared
+        NotificationActions.register()   // «اسم آخر»، «تمّت»، «سنّة أخرى» on the notifications
         return true
     }
 }
@@ -184,7 +186,7 @@ enum Route {
     static var initialTab: Int {
         switch arg {
         case "saved": return 1
-        case "more", "moreupdate", "moreabout", "morebottom", "morefeedback": return 2
+        case "more", "moreupdate", "moreabout", "morebottom", "morefeedback", "moreplaces", "wallpaper": return 2
         default: return 0
         }
     }
@@ -221,7 +223,7 @@ enum Route {
         case "sdomain": return [.sunan, .s(.domain(1))]
         case "sneed": return [.sunan, .s(.domain(1)), .s(.need(1))]
         case "sstate": return [.sunan, .s(.domain(1)), .s(.need(1)), .s(.state(1))]
-        case "sitem", "sitemtext", "sitemmore", "ssavesheet", "sitemshare":
+        case "sitem", "sitemtext", "sitemmore", "ssavesheet", "sitemshare", "sitemalarm":
             return [.sunan, .s(.domain(1)), .s(.need(1)), .s(.state(1)), .s(.item(fp: "2c3521d318c6"))]
         case "sitemq", "sitemqtext":
             return [.sunan, .s(.domain(1)), .s(.need(1)), .s(.state(3)), .s(.item(fp: "b864df3937b5"))]
@@ -265,6 +267,7 @@ enum Route {
         switch arg {
         case "moreupdate": return "content"
         case "morebottom": return "version"
+        case "moreplaces": return "wallpaper"
         default: return nil
         }
     }
