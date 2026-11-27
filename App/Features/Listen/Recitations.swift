@@ -1,9 +1,12 @@
 import Foundation
 
-/// The ayat in Mishary Alafasy's voice (owner 2026-11-27), one file per ayah from everyayah.com, kept on the phone once
-/// fetched — so what was heard plays again without the internet, and «نزّل التلاوات» keeps them all ahead of time.
+/// The ayat in Mishary Alafasy's voice (owner 2026-11-27), one file per ayah, kept on the phone once fetched — so what
+/// was heard plays again without the internet, and «نزّل التلاوات» keeps them all ahead of time. The files are the
+/// app's own copy, compressed strongly (owner: «ضغط قوي» — AAC 24 kbps mono, about a third of everyayah's 64 kbps; the 4164 ayat of the names ≈ 275 MB) in the
+/// public repository pharmjeed/ilm-recitations, served by GitHub Pages; everyayah.com's own file when it is missing.
 enum Recitations {
-    private static let base = URL(string: "https://everyayah.com/data/Alafasy_64kbps/")!
+    private static let base = URL(string: "https://pharmjeed.github.io/ilm-recitations/a24/")!
+    private static let fallback = URL(string: "https://everyayah.com/data/Alafasy_64kbps/")!
 
     static var dir: URL {
         let d = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -18,15 +21,30 @@ enum Recitations {
         return d
     }
 
-    static func name(_ s: Int, _ a: Int) -> String { String(format: "%03d%03d.mp3", s, a) }
-    static func local(_ s: Int, _ a: Int) -> URL { dir.appendingPathComponent(name(s, a)) }
-    static func has(_ s: Int, _ a: Int) -> Bool { FileManager.default.fileExists(atPath: local(s, a).path) }
+    static func id(_ s: Int, _ a: Int) -> String { String(format: "%03d%03d", s, a) }
+    /// The compressed copy (.m4a), or the original (.mp3) fetched when the copy was missing.
+    static func local(_ s: Int, _ a: Int, _ ext: String = "m4a") -> URL { dir.appendingPathComponent("\(id(s, a)).\(ext)") }
+
+    /// What is on the phone for the ayah.
+    static func stored(_ s: Int, _ a: Int) -> URL? {
+        for ext in ["m4a", "mp3"] {
+            let u = local(s, a, ext)
+            if FileManager.default.fileExists(atPath: u.path) { return u }
+        }
+        return nil
+    }
+
+    static func has(_ s: Int, _ a: Int) -> Bool { stored(s, a) != nil }
 
     /// The file of the ayah, fetched first when it is not on the phone yet; nil without the internet.
     static func file(_ s: Int, _ a: Int) async -> URL? {
-        let to = local(s, a)
-        if FileManager.default.fileExists(atPath: to.path) { return to }
-        guard let (tmp, res) = try? await URLSession.shared.download(from: base.appendingPathComponent(name(s, a))),
+        if let u = stored(s, a) { return u }
+        if let u = await fetch(base.appendingPathComponent("\(id(s, a)).m4a"), to: local(s, a, "m4a")) { return u }
+        return await fetch(fallback.appendingPathComponent("\(id(s, a)).mp3"), to: local(s, a, "mp3"))
+    }
+
+    private static func fetch(_ from: URL, to: URL) async -> URL? {
+        guard let (tmp, res) = try? await URLSession.shared.download(from: from),
               (res as? HTTPURLResponse)?.statusCode == 200 else { return nil }
         try? FileManager.default.removeItem(at: to)
         do { try FileManager.default.moveItem(at: tmp, to: to) } catch { return nil }

@@ -132,7 +132,7 @@ struct ListenView: View {
                 .buttonStyle(SecondaryPill())
                 Text(download.failed > 0
                      ? "لم تُنزَّل \(download.failed) آية لانقطاع الإنترنت؛ اضغط مرة أخرى لإكمالها."
-                     : "قرابة 4200 آية، نحو 500 ميغابايت. يُفضَّل على شبكة «واي فاي»، ويُكمل من حيث توقف.")
+                     : "قرابة 4200 آية، نحو 280 ميغابايت. يُفضَّل على شبكة «واي فاي»، ويُكمل من حيث توقف.")
                     .font(AppFont.sans(13)).foregroundStyle(t.muted).lineSpacing(4)
             }
         }
