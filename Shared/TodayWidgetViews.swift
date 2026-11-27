@@ -23,25 +23,20 @@ struct TodayEntry: TimelineEntry {
     enum Action: Hashable { case toSunnah, toName, next }
 
     let date: Date
-    /// The home widget: «اسم اليوم» / «سنّة اليوم» / the collection's title, what it shows, and its button.
+    /// «اسم اليوم» / «سنّة اليوم» / the collection's title, what it shows, and its button.
     let header: String
     let slide: Slide?
     let action: Action?
-    /// The lock screen: the day's name («تلقائي») or the collection's current item.
-    let lockHeader: String
-    let lockSlide: Slide?
 
     static func make(_ date: Date, _ c: Today.Content, _ setup: WidgetSetup) -> TodayEntry {
-        let h = face(setup.home, date, c, lock: false)
-        let l = face(setup.lock ?? setup.home, date, c, lock: true)
-        return TodayEntry(date: date, header: h.header, slide: h.slide, action: h.action,
-                          lockHeader: l.header, lockSlide: l.slide)
+        let h = face(setup.home, date, c)
+        return TodayEntry(date: date, header: h.header, slide: h.slide, action: h.action)
     }
 
-    /// One widget's moment by its choice in «المزيد»: a collection, the day's name always, the day's sunnah always,
-    /// or «تلقائي» (a day each, «بدّل» between them). The lock screen takes a name's short position.
-    private static func face(_ f: WidgetSetup.Face, _ date: Date, _ c: Today.Content,
-                             lock: Bool) -> (header: String, slide: Slide?, action: Action?) {
+    /// The widget's moment by its choice in «المزيد»: a collection, the day's name always, the day's sunnah always,
+    /// or «تلقائي» (a day each, «بدّل» between them).
+    private static func face(_ f: WidgetSetup.Face, _ date: Date,
+                             _ c: Today.Content) -> (header: String, slide: Slide?, action: Action?) {
         let hour = Today.hourNumber(date)
         if f.mode == "collection", let ch = f.choice, !ch.items.isEmpty {
             let k = hour + CollectionCursor.offset
@@ -49,7 +44,7 @@ struct TodayEntry: TimelineEntry {
             let i = ((k % n) + n) % n
             let round = (k - i) / n   // how many times the collection went round: a name shows its next position
             let s = slide(ch.items[i], c, round)
-            return (ch.title, lock && ch.items[i].k == "name" ? short(s, round) : s, n > 1 ? .next : nil)
+            return (ch.title, s, n > 1 ? .next : nil)
         }
         let name = c.name(date).map { Slide.name($0, Today.verse(of: $0.id, slot: hour)) }
         let sunnah = c.sunnah(date).map(Slide.sunnah)
@@ -61,16 +56,9 @@ struct TodayEntry: TimelineEntry {
         default: showSunnah = TodaySwitch.showsSunnah(date) && sunnah != nil
         }
         let both = auto && name != nil && sunnah != nil
-        // the lock screen follows its own choice (owner 2026-11-26 «يظهر الاسم مع الموضع او السنة»)
         return (showSunnah ? "سنّة اليوم" : "اسم اليوم",
-                showSunnah ? sunnah : (lock ? short(name, hour) : name),
+                showSunnah ? sunnah : name,
                 both ? (showSunnah ? .toName : .toSunnah) : nil)
-    }
-
-    /// For the lock screen: the name with one of its positions short enough for its box (else the hour's position).
-    private static func short(_ s: Slide?, _ slot: Int) -> Slide? {
-        guard case .name(let n, let v)? = s else { return s }
-        return .name(n, Today.shortVerse(of: n.id, slot: slot) ?? v)
     }
 
     private static func slide(_ it: WidgetChoice.Item, _ c: Today.Content, _ round: Int) -> Slide? {
@@ -96,8 +84,7 @@ struct TodayEntry: TimelineEntry {
     static let placeholder = TodayEntry(
         date: Date(), header: "اسم اليوم",
         slide: .name(Today.Name(id: 0, name: "اسم اليوم", excerpt: "معنى الاسم، ومتى تستحضره، ومتى تدعو به."), nil),
-        action: nil, lockHeader: "اسم اليوم",
-        lockSlide: .name(Today.Name(id: 0, name: "اسم اليوم", excerpt: "معنى الاسم، ومتى تستحضره، ومتى تدعو به."), nil))
+        action: nil)
 }
 
 /// «بدّل»: the button on the home widget shows the other one (the day's name ↔ the day's sunnah) until the day ends.
@@ -169,110 +156,12 @@ enum WidgetLook {
     static func amiri(_ size: CGFloat) -> Font { .custom("Amiri-Regular", size: size) }
 }
 
-/// Every family of the two widgets: the home widget (small / medium / large) and the lock screen (a line, a box).
+/// The home widget, small / medium / large.
 struct TodayWidgetView: View {
     let entry: TodayEntry
     let family: WidgetFamily
 
-    var body: some View {
-        switch family {
-        case .accessoryInline: inline
-        case .accessoryRectangular: rectangular
-        default: home
-        }
-    }
-
-    // MARK: lock screen — a header and the name (or the item) with one line
-
-    private var lockTitle: String {
-        switch entry.lockSlide {
-        case .name(let n, _): return n.name
-        case .sunnah(let s): return s.todo
-        case .text(let t, _, _): return t
-        case nil: return "—"
-        }
-    }
-
-    private var inline: some View {
-        Text("\(entry.lockHeader): \(lockTitle)")
-            .containerBackground(for: .widget) { Color.clear }
-            .widgetURL(entry.lockSlide?.link)
-    }
-
-    /// The box's size is the system's (about 160×72 points) — the largest Apple allows on the lock screen; the text
-    /// fills it (owner 2026-11-26 «صغيرة في شاشة القفل»). A name with a short position: the name and the whole ayah;
-    /// otherwise the largest title that stays on one line with its line under it, else smaller, else on up to three
-    /// lines alone. Line heights are the fonts' own (thmanyah 1.25 × size, Amiri 1.76 × size).
-    private var rectangular: some View {
-        lockContent
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .containerBackground(for: .widget) { Color.clear }
-            .widgetURL(entry.lockSlide?.link)
-    }
-
-    @ViewBuilder private var lockContent: some View {
-        switch entry.lockSlide {
-        case .name(let n, let v?) where n.name.count <= 32:   // a longer name needs the box's lines for itself
-            ViewThatFits(in: .vertical) {
-                lockAyah(n, v, name: 17, ayah: 12)
-                lockAyah(n, v, name: 15, ayah: 11)
-                lockLadder(n.name, serif: true, line: "آيته \(v.ref)")
-            }
-        case .name(let n, let v): lockLadder(n.name, serif: true, line: v.map { "آيته \($0.ref)" } ?? n.excerpt)
-        case .sunnah(let s): lockLadder(s.todo, serif: false, line: s.fruit.map { "← \($0)" })
-        case .text(let t, let sub, _): lockLadder(t, serif: false, line: sub)
-        case nil: Text(entry.lockHeader).font(WidgetLook.sans(13, .medium))
-        }
-    }
-
-    /// The name, then its ayah whole with the reference (no header: the box has room for two lines of ayah only).
-    private func lockAyah(_ n: Today.Name, _ v: Today.Verse, name: CGFloat, ayah: CGFloat) -> some View {
-        var a = AttributedString("﴿\(v.text)﴾")
-        a.font = WidgetLook.amiri(ayah)
-        var r = AttributedString(" \(v.ref.nonBreaking)")
-        r.font = WidgetLook.sans(9)
-        r.foregroundColor = Color.primary.opacity(0.7)
-        return VStack(alignment: .leading, spacing: 0) {
-            Text(n.name).font(WidgetLook.serif(name)).lineLimit(1).minimumScaleFactor(0.6).widgetAccentable()
-            Text(a + r)
-        }
-    }
-
-    private func lockLadder(_ title: String, serif: Bool, line: String?) -> some View {
-        ViewThatFits(in: .vertical) {
-            if serif {
-                lockBox(title, serif: true, size: 26, text: 15, line: line)
-                lockBox(title, serif: true, size: 22, text: 14, line: line)
-            }
-            lockBox(title, serif: serif, size: 19, text: 13, line: line)
-            lockBox(title, serif: serif, size: 17, text: nil, line: nil)
-            lockBox(title, serif: serif, size: 14, text: nil, line: nil, lines: 3)
-        }
-    }
-
-    private func lockBox(_ title: String, serif: Bool, size: CGFloat, text: CGFloat?, line: String?,
-                         lines: Int? = nil) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(entry.lockHeader).font(WidgetLook.sans(12, .medium)).lineLimit(1).widgetAccentable()
-            Text(title).font(serif ? WidgetLook.serif(size) : WidgetLook.sans(size * 0.8, .bold)).lineLimit(lines)
-                .minimumScaleFactor(lines == nil ? 1 : 0.65)
-            if let text, let line { lockLine(line, text) }
-        }
-    }
-
-    /// One line of the excerpt: the longest cut that fits whole (a cut never falls inside an ayah — NotificationText).
-    private func lockLine(_ excerpt: String, _ size: CGFloat) -> some View {
-        func cut(_ m: Int) -> some View {
-            Text(NotificationText.body(excerpt, max: m)).font(WidgetLook.sans(size)).lineLimit(1)
-        }
-        return ViewThatFits(in: .horizontal) {
-            cut(60)
-            cut(44)
-            cut(34)
-            cut(26)
-            cut(20).minimumScaleFactor(0.75)
-        }
-    }
+    var body: some View { home }
 
     // MARK: home screen
 

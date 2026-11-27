@@ -14,7 +14,6 @@ struct MoreView: View {
     @AppStorage("evening.hour") private var eveningHour = 21
     @AppStorage("evening.minute") private var eveningMinute = 0
     @AppStorage(WidgetShare.key) private var widgetCollection = ""
-    @AppStorage(WidgetShare.lockKey) private var widgetLock = WidgetShare.same
     @AppStorage(LiveToday.key) private var liveOn = true
     @ObservedObject private var sync = PackSync.shared
     @State private var auth: UNAuthorizationStatus?
@@ -37,7 +36,6 @@ struct MoreView: View {
                 reminderSection(t)
                 eveningSection(t)
                 widgetSection(t)
-                lockWidgetSection(t)
                 liveSection(t)
                 aboutSection(t)
                 accountSection(t)
@@ -83,7 +81,6 @@ struct MoreView: View {
         .onChange(of: eveningHour) { _, _ in ReminderScheduler.shared.reschedule() }
         .onChange(of: eveningMinute) { _, _ in ReminderScheduler.shared.reschedule() }
         .onChange(of: widgetCollection) { _, _ in Task { await WidgetShare.sync() } }
-        .onChange(of: widgetLock) { _, _ in Task { await WidgetShare.sync() } }
         .onChange(of: liveOn) { _, _ in Task { await LiveToday.refresh(byUser: true) } }
     }
 
@@ -280,26 +277,6 @@ struct MoreView: View {
         .listRowBackground(t.surface)
     }
 
-    /// «أداة شاشة القفل» (owner 2026-11-26): the same choices, on its own; by default it follows the home widget.
-    private func lockWidgetSection(_ t: Theme) -> some View {
-        let cols = SavedStore.shared.collections.filter { !$0.items.isEmpty }
-        let current = widgetValue(widgetLock, cols, fallback: WidgetShare.same)
-        return Section {
-            widgetRow("مثل أداة الشاشة الرئيسية", current == WidgetShare.same, t) { widgetLock = WidgetShare.same }
-            widgetRow("تلقائي: اسم اليوم وسنّة اليوم", current == "", t) { widgetLock = "" }
-            widgetRow("اسم اليوم دائمًا", current == WidgetShare.name, t) { widgetLock = WidgetShare.name }
-            widgetRow("سنّة اليوم دائمًا", current == WidgetShare.sunnah, t) { widgetLock = WidgetShare.sunnah }
-            ForEach(cols) { c in
-                widgetRow("\(c.title) · \(c.items.count)", current == c.id, t) { widgetLock = c.id }
-            }
-        } header: {
-            header("أداة شاشة القفل", t)
-        } footer: {
-            footer("حجم الأداة على شاشة القفل يحدده الآيفون ولا يكبر؛ وللعرض الكبير فعّل «العرض الكبير على شاشة القفل» أدناه. إضافة الأداة نفسها تكون من شاشة القفل: اضغط مطوّلًا ثم «تخصيص».", t)
-        }
-        .listRowBackground(t.surface)
-    }
-
     /// «العرض الكبير على شاشة القفل» (owner 2026-11-26): the day's sunnah on a card as wide as the screen (a Live
     /// Activity), until «تمّت» or the system's limit.
     private func liveSection(_ t: Theme) -> some View {
@@ -328,7 +305,7 @@ struct MoreView: View {
 
     /// The stored choice, or `fallback` when its collection is gone.
     private func widgetValue(_ v: String, _ cols: [SavedCollection], fallback: String) -> String {
-        if ["", WidgetShare.name, WidgetShare.sunnah, WidgetShare.same].contains(v) { return v }
+        if ["", WidgetShare.name, WidgetShare.sunnah].contains(v) { return v }
         return cols.contains { $0.id == v } ? v : fallback
     }
 

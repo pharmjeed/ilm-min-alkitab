@@ -66,14 +66,6 @@ enum Today {
         let v = verses(of: id)
         return v.isEmpty ? nil : v[((slot % v.count) + v.count) % v.count]
     }
-
-    /// The lock screen's box holds about two short lines of an ayah: the name's positions that short enough (letters
-    /// with their marks counted once), one after another; nil when the name has none.
-    static func shortVerse(of id: Int, slot: Int, maxLetters: Int = 52) -> Verse? {
-        let v = verses(of: id).filter { $0.text.count <= maxLetters }
-        return v.isEmpty ? nil : v[((slot % v.count) + v.count) % v.count]
-    }
-
     // MARK: content
 
     struct Name: Hashable {

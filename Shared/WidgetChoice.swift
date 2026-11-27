@@ -42,9 +42,9 @@ struct WidgetChoice: Codable, Equatable {
     }
 }
 
-/// What each widget shows (owner 2026-11-26 «اعدادات ظهور الودجت ... في اعدادات التطبيق»), chosen in «المزيد»: the
-/// home widget and the lock screen's one each have «تلقائي», «اسم اليوم دائمًا», «سنّة اليوم دائمًا» or a collection of
-/// «محفوظاتي». Same road as before: the app writes it into the shared keychain group, the extension reads it.
+/// What the home widget shows (owner 2026-11-26 «اعدادات ظهور الودجت ... في اعدادات التطبيق»), chosen in «المزيد»:
+/// «تلقائي», «اسم اليوم دائمًا», «سنّة اليوم دائمًا» or a collection of «محفوظاتي». The app writes it into the shared
+/// keychain group, the extension reads it. (A `lock` face written by builds 26–27 is ignored when read.)
 struct WidgetSetup: Codable, Equatable {
     struct Face: Codable, Equatable {
         /// "auto" | "name" | "sunnah" | "collection"
@@ -54,8 +54,6 @@ struct WidgetSetup: Codable, Equatable {
     }
 
     var home = Face()
-    /// nil = the same as the home widget
-    var lock: Face? = nil
 
     private static let account = "setup"
 
@@ -63,7 +61,7 @@ struct WidgetSetup: Codable, Equatable {
         if let data = WidgetKeychain.read(account), let s = try? JSONDecoder().decode(WidgetSetup.self, from: data) {
             return s
         }
-        // written by a version before the setup: the one collection, on both widgets
+        // written by a version before the setup: the one collection
         if let c = WidgetChoice.loadLegacy() { return WidgetSetup(home: Face(mode: "collection", choice: c)) }
         return WidgetSetup()
     }

@@ -1,28 +1,21 @@
 import Foundation
 import WidgetKit
 
-/// Hands the widgets what «المزيد» chose for each (owner 2026-11-26): «تلقائي», «اسم اليوم دائمًا», «سنّة اليوم دائمًا»,
-/// or a collection of «محفوظاتي» described item by item (the widgets have no sunan or situations data of their own).
+/// Hands the home widget what «المزيد» chose (owner 2026-11-26): «تلقائي», «اسم اليوم دائمًا», «سنّة اليوم دائمًا»,
+/// or a collection of «محفوظاتي» described item by item (the widget has no sunan or situations data of its own).
 @MainActor
 enum WidgetShare {
-    /// The home widget: "" = «تلقائي», `name`, `sunnah`, or a collection's id.
+    /// "" = «تلقائي», `name`, `sunnah`, or a collection's id.
     static let key = "widget.collection"
-    /// The lock screen's widget: the same values, or `same` (the default) = as the home widget.
-    static let lockKey = "widget.lock"
     static let name = "@name"
     static let sunnah = "@sunnah"
-    static let same = "@same"
 
     static func sync() async {
-        let d = UserDefaults.standard
-        let home = d.string(forKey: key) ?? ""
-        let lock = d.string(forKey: lockKey) ?? same
-        // a collection not loaded yet (or offline): keep what the widgets already have
-        let wantsCollection = [home, lock].contains { !["", name, sunnah, same].contains($0) }
+        let home = UserDefaults.standard.string(forKey: key) ?? ""
+        // a collection not loaded yet (or offline): keep what the widget already has
+        let wantsCollection = !["", name, sunnah].contains(home)
         if wantsCollection && Account.shared.isSignedIn && SavedStore.shared.phase != .ready { return }
-        let h = await face(home)
-        let l = lock == same ? nil : await face(lock)
-        write(WidgetSetup(home: h, lock: l))
+        write(WidgetSetup(home: await face(home)))
     }
 
     private static func write(_ s: WidgetSetup) {

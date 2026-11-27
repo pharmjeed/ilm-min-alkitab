@@ -1,13 +1,13 @@
 import SwiftUI
 import WidgetKit
 
-/// The app's widgets (owner 2026-11-26): «اسم اليوم وسنّة اليوم» on the home screen, «اسم اليوم» on the lock screen,
-/// and the lock screen's wide card (a Live Activity, `IlmLiveActivity.swift`).
+/// The app's widgets (owner 2026-11-26): «اسم اليوم وسنّة اليوم» on the home screen, and the lock screen's wide card
+/// (a Live Activity, `IlmLiveActivity.swift`). The small lock screen widget was removed (owner 2026-11-27: its box
+/// is too small — only these two places).
 @main
 struct IlmWidgets: WidgetBundle {
     var body: some Widget {
         TodayWidget()
-        TodayLockWidget()
         TodayLiveActivity()
     }
 }
@@ -52,27 +52,7 @@ struct TodayWidget: Widget {
     }
 }
 
-struct TodayLockWidget: Widget {
-    var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "today-lock", provider: TodayProvider()) { entry in
-            TodayLockWidgetView(entry: entry)
-        }
-        .configurationDisplayName("اسم اليوم")
-        .description("اسم اليوم وسطرٌ من معناه على شاشة القفل، أو مجموعتك من «محفوظاتي».")
-        .supportedFamilies([.accessoryRectangular, .accessoryInline])
-    }
-}
-
 private struct TodayHomeWidgetView: View {
-    @Environment(\.widgetFamily) private var family
-    let entry: TodayEntry
-    var body: some View {
-        TodayWidgetView(entry: entry, family: family)
-            .environment(\.layoutDirection, .rightToLeft)
-    }
-}
-
-private struct TodayLockWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: TodayEntry
     var body: some View {
