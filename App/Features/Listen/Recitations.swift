@@ -2,10 +2,10 @@ import Foundation
 
 /// The ayat in Mishary Alafasy's voice (owner 2026-11-27), one file per ayah, kept on the phone once fetched — so what
 /// was heard plays again without the internet, and «نزّل التلاوات» keeps them all ahead of time. The files are the
-/// app's own copy, compressed strongly (owner: «ضغط قوي» — AAC 24 kbps mono, about a third of everyayah's 64 kbps; the 4164 ayat of the names ≈ 275 MB) in the
+/// app's own copy, compressed strongly (owner chose it by ear: «الاقوى مقبول جدا» — HE-AAC 16 kbps mono, about a quarter of everyayah's 64 kbps; the 4164 ayat of the names ≈ 195 MB) in the
 /// public repository pharmjeed/ilm-recitations, served by GitHub Pages; everyayah.com's own file when it is missing.
 enum Recitations {
-    private static let base = URL(string: "https://pharmjeed.github.io/ilm-recitations/a24/")!
+    private static let base = URL(string: "https://pharmjeed.github.io/ilm-recitations/a16/")!
     private static let fallback = URL(string: "https://everyayah.com/data/Alafasy_64kbps/")!
 
     static var dir: URL {
