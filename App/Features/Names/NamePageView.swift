@@ -291,6 +291,7 @@ private struct NameHero: View {
             .padding(.top, 24)
             FlowLayout(spacing: 8, lineSpacing: 8) {
                 FavoritePill(key: .name(detail.id), item: detail.name)
+                ListenPill { await ListenPlayer.shared.startName(detail.id) }   // «مشغّل الصوت» (owner 2026-11-27)
                 SharePill(title: Arabic.nameTitle(detail.name), text: "\(detail.name) — مواضعه في القرآن ومتى يُدعى به",
                           url: Site.nameURL(detail.id),
                           card: ShareCard(kicker: "من أسماء الله الحسنى", headline: AttributedString(detail.name), headlineIsName: true,

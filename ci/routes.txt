@@ -85,3 +85,4 @@
 70-more-places|-onboarded YES -route moreplaces
 70b-wallpaper|-onboarded YES -route wallpaper|8
 70c-sunnah-alarm|-onboarded YES -route sitemalarm|8
+71-listen|-onboarded YES -route listen|6

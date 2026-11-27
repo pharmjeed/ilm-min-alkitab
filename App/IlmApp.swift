@@ -103,6 +103,7 @@ struct MainTabView: View {
         .overlay(alignment: .bottom) {
             if let probe { ReminderProbeView(probe: probe).padding(.bottom, 56) }
         }
+        .overlay(alignment: .bottom) { ListenMiniBar() }   // «مشغّل الصوت» while it plays
         .onAppear { PackSync.shared.nav = nav }
         .onReceive(router.$pending) { open in
             guard let open else { return }
@@ -186,7 +187,7 @@ enum Route {
     static var initialTab: Int {
         switch arg {
         case "saved": return 1
-        case "more", "moreupdate", "moreabout", "morebottom", "morefeedback", "moreplaces", "wallpaper": return 2
+        case "more", "moreupdate", "moreabout", "morebottom", "morefeedback", "moreplaces", "wallpaper", "listen": return 2
         default: return 0
         }
     }

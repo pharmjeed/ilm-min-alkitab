@@ -118,6 +118,7 @@ private struct SunanItemContent: View {
                           card: SunanText.shareCard(item, state: state))
                 // «المنبّه» (owner 2026-11-27): an alarm for this sunnah at the reader's time (iOS 26+)
                 AlarmPill(fp: item.fp, stateId: state.id, title: SunanText.easyParts(item.easy).cause)
+                ListenPill { await ListenPlayer.shared.startSunnah(fp: item.fp, stateId: state.id) }   // «مشغّل الصوت»
             }
             .padding(.top, 16)
         }

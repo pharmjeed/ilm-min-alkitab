@@ -24,6 +24,7 @@ struct MoreView: View {
     @State private var confirmDelete = false
     @State private var showSearchCheck = false
     @State private var showWallpaper = Route.arg == "wallpaper"
+    @State private var showListen = Route.arg == "listen"
     @State private var alarms: [SunnahAlarmRecord] = []
 
     static let sampleAyah = "﴿وَلِلَّهِ الْأَسْمَاءُ الْحُسْنَىٰ فَادْعُوهُ بِهَا﴾"
@@ -39,6 +40,7 @@ struct MoreView: View {
                 eveningSection(t)
                 widgetSection(t)
                 liveSection(t)
+                listenSection(t)
                 wallpaperSection(t)
                 if #available(iOS 26.0, *) { alarmsSection(t) }
                 controlsSection(t)
@@ -72,6 +74,7 @@ struct MoreView: View {
         .navigationDestination(isPresented: $showFeedback) { FeedbackView() }
         .navigationDestination(isPresented: $showSearchCheck) { SpotlightProbeView() }
         .navigationDestination(isPresented: $showWallpaper) { WallpaperPage() }
+        .navigationDestination(isPresented: $showListen) { ListenView() }
         .sheet(isPresented: $signingIn) { SaveSignInSheet(item: nil) }
         .confirmationDialog("حذف الحساب", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("احذف حسابي نهائيًا", role: .destructive) { Task { _ = await Account.shared.deleteAccount() } }
@@ -280,6 +283,26 @@ struct MoreView: View {
             header("أداة الشاشة الرئيسية", t)
         } footer: {
             footer(homeWidgetNote(current, signedIn: signedIn, hasCollections: !cols.isEmpty), t)
+        }
+        .listRowBackground(t.surface)
+    }
+
+    /// «الاستماع» (owner 2026-11-27): the player of the names' positions and the sunan (Listen/).
+    private func listenSection(_ t: Theme) -> some View {
+        Section {
+            Button { showListen = true } label: {
+                HStack {
+                    rowLabel(t, "headphones", "استمع إلى المنصة")
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.left").font(.footnote).foregroundStyle(t.muted)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        } header: {
+            header("الاستماع", t)
+        } footer: {
+            footer("يقرأ كل موضع وكل سنّة كاملًا، الآيات بصوت الشيخ مشاري العفاسي، ويبقى يعمل والجوال مقفل.", t)
         }
         .listRowBackground(t.surface)
     }

@@ -24,6 +24,8 @@ targets:
       - path: Resources/Assets.xcassets
       - path: Resources/Fonts
         buildPhase: resources
+      - path: Resources/Quran   # quran-plain.json: which ayah a quote is, for the player's recitation
+        buildPhase: resources
       - path: assets/packs
         type: folder
         buildPhase: resources
@@ -48,6 +50,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true   # «العرض الكبير على شاشة القفل» (owner 2026-11-26)
+        UIBackgroundModes: [audio]   # «مشغّل الصوت» goes on with the phone locked (owner 2026-11-27)
         NSAlarmKitUsageDescription: "ليرنّ منبّه السنّة في الوقت والأيام التي تختارها."   # «المنبّه» (owner 2026-11-27)
         UILaunchScreen:
           UIColorName: LaunchBackground
